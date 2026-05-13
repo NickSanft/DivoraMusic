@@ -137,8 +137,36 @@ test.describe('hero visualizer', () => {
   test('canvas mounts inside the hero stage', async ({ page }) => {
     await page.goto(HOME);
     await expect(page.locator('.hero-stage canvas')).toBeVisible();
-    // Prism core SVG is appended next to the canvas.
+    // Prism core SVG is appended next to the canvas (only for the
+    // default Reliquary visualizer; other styles are pure canvas).
     await expect(page.locator('.hero-stage svg polygon').first()).toBeVisible();
+  });
+
+  test('switcher swaps visualizers and persists in localStorage', async ({ page }) => {
+    // Each Playwright test runs in a fresh context, so localStorage
+    // starts empty and the initial selection is the default.
+    await page.goto(HOME);
+
+    const selected = page.locator('.vis-switcher button[aria-selected="true"]');
+    await expect(selected).toHaveAttribute('data-viz', 'reliquary');
+
+    // Switch to Linear/Subway. The Reliquary's prism-core SVG should
+    // be torn down with the old controller; the new canvas should
+    // mount in its place.
+    await page.click('.vis-switcher button[data-viz="linear"]');
+    await expect(page.locator('.vis-switcher button[aria-selected="true"]')).toHaveAttribute(
+      'data-viz',
+      'linear',
+    );
+    await expect(page.locator('.hero-stage canvas')).toBeVisible();
+    await expect(page.locator('.hero-stage svg polygon')).toHaveCount(0);
+
+    // Reload — the choice survives because we persist to localStorage.
+    await page.reload();
+    await expect(page.locator('.vis-switcher button[aria-selected="true"]')).toHaveAttribute(
+      'data-viz',
+      'linear',
+    );
   });
 });
 

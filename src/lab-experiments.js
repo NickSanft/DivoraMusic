@@ -1,6 +1,11 @@
 // Divora /lab — vanilla ports of the prototype's 4 canvas
 // experiments. The 5th and 6th experiments (terminal log and
 // blockquote) are simpler so they live in lab.js.
+//
+// Each mount accepts an optional `getSpectrum` source. When omitted
+// it creates its own simulated source — exactly what /lab wants.
+// The hero swaps in the live AnalyserNode-driven source via the
+// returned controller's setSource() once the user clicks play.
 
 import { createSimulatedSpectrum } from './visualizer.js';
 
@@ -8,12 +13,12 @@ const PREFERS_REDUCED =
   typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ── Experiment 02: Linear / Subway — classic FFT bars ──
-export function mountLinearBars(container, { bars = 48 } = {}) {
+export function mountLinearBars(container, getSpectrum, { bars = 48 } = {}) {
   const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d');
-  const read = createSimulatedSpectrum({ bins: bars });
-  let raf = 0;
+  let read = getSpectrum || createSimulatedSpectrum({ bins: bars });
   let width = 0;
   let height = 0;
 
@@ -31,10 +36,12 @@ export function mountLinearBars(container, { bars = 48 } = {}) {
 
   const renderOnce = () => {
     const { spec } = read();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
     const bw = width / bars;
     for (let i = 0; i < bars; i++) {
-      const v = spec[i];
+      const v = spec[i] ?? 0;
       const h = v * (height - 20);
       const g = ctx.createLinearGradient(0, height - h, 0, height);
       g.addColorStop(0, '#ff4d8f');
@@ -55,18 +62,30 @@ export function mountLinearBars(container, { bars = 48 } = {}) {
     }
   };
 
-  return startLoop(container, resize, renderOnce, () => {
-    canvas.remove();
-    if (raf) cancelAnimationFrame(raf);
+  return startLoop(container, resize, renderOnce, () => canvas.remove(), {
+    setSource: (next) => {
+      read = next;
+    },
   });
 }
 
 // ── Experiment 03: Particle Reliquary — particles orbiting the core ──
-export function mountParticlePrism(container, { count = 300 } = {}) {
+//
+// Bugfix notes: each renderOnce() starts by resetting
+// globalCompositeOperation to 'source-over' before painting the
+// dark trail-fill. Without that reset, the 'lighter' mode set at
+// the end of the previous frame leaks into the next frame's
+// fillRect, which then *adds* RGB to every pixel — accumulating
+// to full white within a couple seconds. The prototype masked
+// this by setting `canvas.width = ...` every frame (which resets
+// all context state); we resize less often, so we reset
+// explicitly.
+export function mountParticlePrism(container, getSpectrum, { count = 300 } = {}) {
   const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d');
-  const read = createSimulatedSpectrum({ bins: 8 });
+  let read = getSpectrum || createSimulatedSpectrum({ bins: 8 });
   let width = 0;
   let height = 0;
 
@@ -95,9 +114,18 @@ export function mountParticlePrism(container, { count = 300 } = {}) {
 
   const renderOnce = () => {
     const { kick } = read();
+
+    // 1. Reset blend mode so the trail fill darkens the canvas (it
+    //    used to leak 'lighter' from the previous frame, which made
+    //    every fillRect *brighten* the canvas instead of dim it).
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(10, 4, 20, 0.18)';
     ctx.fillRect(0, 0, width, height);
+
+    // 2. Particles are drawn additively so overlaps glow.
     ctx.globalCompositeOperation = 'lighter';
+
     const cx = width / 2;
     const cy = height / 2;
     const R = Math.min(width, height) * 0.45;
@@ -118,15 +146,20 @@ export function mountParticlePrism(container, { count = 300 } = {}) {
     }
   };
 
-  return startLoop(container, resize, renderOnce, () => canvas.remove());
+  return startLoop(container, resize, renderOnce, () => canvas.remove(), {
+    setSource: (next) => {
+      read = next;
+    },
+  });
 }
 
 // ── Experiment 04: Hexlattice — counter-rotating hex rings ──
-export function mountHexlattice(container) {
+export function mountHexlattice(container, getSpectrum) {
   const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
   container.appendChild(canvas);
   const ctx = canvas.getContext('2d');
-  const read = createSimulatedSpectrum({ bins: 8 });
+  let read = getSpectrum || createSimulatedSpectrum({ bins: 8 });
   let width = 0;
   let height = 0;
 
@@ -144,6 +177,8 @@ export function mountHexlattice(container) {
 
   const renderOnce = () => {
     const { frame, kick } = read();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, width, height);
     const cx = width / 2;
     const cy = height / 2;
@@ -175,11 +210,15 @@ export function mountHexlattice(container) {
     }
   };
 
-  return startLoop(container, resize, renderOnce, () => canvas.remove());
+  return startLoop(container, resize, renderOnce, () => canvas.remove(), {
+    setSource: (next) => {
+      read = next;
+    },
+  });
 }
 
 // ── shared loop helper: resize-aware, visibility-aware, reduced-motion-aware ──
-function startLoop(container, resize, renderOnce, onDestroy) {
+function startLoop(container, resize, renderOnce, onDestroy, extra = {}) {
   resize();
   renderOnce();
 
@@ -218,6 +257,7 @@ function startLoop(container, resize, renderOnce, onDestroy) {
   start();
 
   return {
+    ...extra,
     pause: stop,
     resume: start,
     destroy() {

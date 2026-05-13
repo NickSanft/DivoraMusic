@@ -60,11 +60,11 @@ ready(() => {
 
   // 02 — Linear / Subway.
   const linear = document.querySelector('[data-exp="linear"]');
-  if (linear) mountLinearBars(linear, { bars: 48 });
+  if (linear) mountLinearBars(linear, null, { bars: 48 });
 
   // 03 — Particle Reliquary.
   const particle = document.querySelector('[data-exp="particle"]');
-  if (particle) mountParticlePrism(particle, { count: 300 });
+  if (particle) mountParticlePrism(particle, null, { count: 300 });
 
   // 04 — Hexlattice.
   const hex = document.querySelector('[data-exp="hexlattice"]');

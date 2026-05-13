@@ -344,6 +344,52 @@ button {
   }
 }
 
+/* visualizer style switcher (under the now-playing widget) */
+.vis-switcher {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  margin: 14px auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lilac);
+  background: rgba(10, 4, 20, 0.45);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.vis-switcher .vis-label {
+  opacity: 0.55;
+  padding-right: 6px;
+  font-size: 9px;
+}
+.vis-switcher button {
+  padding: 4px 8px;
+  color: inherit;
+  opacity: 0.45;
+  border: 1px solid transparent;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.vis-switcher button:hover {
+  opacity: 0.85;
+}
+.vis-switcher button[aria-selected='true'] {
+  opacity: 1;
+  color: var(--mist);
+  border-color: var(--line-2);
+  background: rgba(124, 58, 237, 0.18);
+}
+
 /* ─── section base ─── */
 section.s {
   position: relative;
