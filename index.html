@@ -105,15 +105,50 @@
           <h1 class="hero-title">DIVORA</h1>
           <p class="hero-tag">synth · drum &amp; bass · whatever I feel like</p>
 
-          <button class="now-playing" type="button">
-            <span class="np-play"></span>
-            <span class="np-meta">
-              <span class="np-title">GYREFOLK DOCKS</span>
-              <span class="np-sub">Divora · Latest</span>
-            </span>
-            <span class="np-bar"><div></div></span>
-            <span class="np-time">00:00 / 02:34</span>
-          </button>
+          <div class="cassette" data-track="gyrefolk-docks" aria-label="Now playing">
+            <div class="cassette-reels" aria-hidden="true">
+              <div class="reel left"></div>
+              <div class="reel right"></div>
+            </div>
+            <div class="cassette-label">
+              <span class="ttl"><span class="ttl-text">Gyrefolk Docks</span></span>
+              <span class="sub">OMINOUS · 01</span>
+            </div>
+            <div class="cassette-controls">
+              <button class="cassette-play" type="button" aria-label="Play preview">
+                <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
+                  <polygon points="0,0 0,12 10,6" fill="currentColor" />
+                </svg>
+              </button>
+              <span class="cassette-bar" aria-hidden="true"><div></div></span>
+              <span class="cassette-time">00:00 / 02:34</span>
+              <button class="cassette-next" type="button" aria-label="Next track">
+                <svg
+                  width="14"
+                  height="12"
+                  viewBox="0 0 14 12"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <polygon points="0,0 0,12 8,6" />
+                  <rect x="9" y="0" width="2" height="12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="track-switcher" role="tablist" aria-label="Track"></div>
+
+          <div class="hero-toggles">
+            <button
+              class="auto-advance-toggle"
+              type="button"
+              aria-pressed="false"
+              title="Auto-advance through the catalog when a track ends"
+            >
+              auto · off
+            </button>
+          </div>
 
           <div class="vis-switcher" role="tablist" aria-label="Visualizer style">
             <span class="vis-label">vis ·</span>

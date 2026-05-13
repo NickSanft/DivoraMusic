@@ -1,26 +1,28 @@
-// Hero — mounts the prism visualizer, wires the now-playing widget
-// to the hosted MP3, and swaps the visualizer's spectrum source
-// from simulated to AnalyserNode-driven once the user clicks play.
+// Hero — owns the audio graph for the whole hero, mounts the
+// visualizer + cassette, and coordinates track swaps.
 //
-// The user can choose one of four visualizer styles (Spectral
-// Reliquary, Linear/Subway, Particle Reliquary, Hexlattice) from
-// the .vis-switcher tab strip. Selection persists in localStorage.
+// Architecture:
+//   One HTMLAudioElement is reused for every track (we change
+//   `src` on swap; AnalyserNode connection persists). One
+//   AudioContext + AnalyserNode are created lazily on the first
+//   play and shared between the visualizer (drives canvas pixels)
+//   and the cassette reels (drives rotation speed).
 //
-// Autoplay restrictions: AudioContext is created lazily on the
-// first play click, then never torn down. Subsequent pause/play
-// just toggles the <audio> element. The active visualizer's
-// setSource() is called once the audio analyser is ready.
+// Persistence:
+//   - `divora:viz`   — selected visualizer style
+//   - `divora:track` — last-played track id (random on first visit)
+//   - `divora:auto`  — auto-advance toggle ('1' | '0')
 
-import { mountPrismStage, createSimulatedSpectrum, createAudioSpectrum } from './visualizer.js';
+import { mountPrismStage, createSimulatedSpectrum, createAnalyserSpectrum } from './visualizer.js';
 import { mountLinearBars, mountParticlePrism, mountHexlattice } from './lab-experiments.js';
+import { initCassette } from './cassette.js';
+import { TRACKS, findTrackIndex } from './tracks.js';
 
-const AUDIO_SRC = `${import.meta.env.BASE_URL}audio/gyrefolk-docks.mp3`;
-const STORAGE_KEY = 'divora:viz';
+const VIZ_KEY = 'divora:viz';
+const TRACK_KEY = 'divora:track';
+const AUTO_KEY = 'divora:auto';
 const DEFAULT_VIZ = 'reliquary';
 
-// Registry. Each entry's `mount(el, getSpec)` returns a controller
-// with at least { destroy(), setSource(getSpec) }. The hero only
-// ever holds one mounted at a time.
 const VISUALIZERS = {
   reliquary: (el, getSpec) => mountPrismStage(el, getSpec, { bars: 64 }),
   linear: (el, getSpec) => mountLinearBars(el, getSpec, { bars: 64 }),
@@ -28,24 +30,27 @@ const VISUALIZERS = {
   hexlattice: (el, getSpec) => mountHexlattice(el, getSpec),
 };
 
-const playIcon = `
-  <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-    <polygon points="0,0 0,12 10,6" fill="currentColor" />
-  </svg>`;
-const pauseIcon = `
-  <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-    <rect x="0" y="0" width="3" height="12" fill="currentColor" />
-    <rect x="7" y="0" width="3" height="12" fill="currentColor" />
-  </svg>`;
+const isTest =
+  typeof URLSearchParams !== 'undefined' &&
+  new URLSearchParams(globalThis.location?.search || '').get('test') === '1';
 
-const fmtTime = (sec) => {
-  const s = Math.max(0, Math.floor(sec || 0));
-  return `${String((s / 60) | 0).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-};
+function pickInitialTrack() {
+  // In tests, always start at track 0 so screenshots are deterministic.
+  if (isTest) return 0;
+  try {
+    const saved = globalThis.localStorage?.getItem(TRACK_KEY);
+    const idx = saved ? findTrackIndex(saved) : null;
+    if (idx !== null) return idx;
+  } catch {
+    // ignore
+  }
+  // First-time visitor — pick a random track.
+  return Math.floor(Math.random() * TRACKS.length);
+}
 
 function loadVizChoice() {
   try {
-    const v = globalThis.localStorage?.getItem(STORAGE_KEY);
+    const v = globalThis.localStorage?.getItem(VIZ_KEY);
     return v && VISUALIZERS[v] ? v : DEFAULT_VIZ;
   } catch {
     return DEFAULT_VIZ;
@@ -53,27 +58,154 @@ function loadVizChoice() {
 }
 function saveVizChoice(id) {
   try {
-    globalThis.localStorage?.setItem(STORAGE_KEY, id);
+    globalThis.localStorage?.setItem(VIZ_KEY, id);
   } catch {
-    // localStorage may be unavailable (private mode, etc.) — non-fatal.
+    // ignore
+  }
+}
+function saveTrackChoice(id) {
+  try {
+    globalThis.localStorage?.setItem(TRACK_KEY, id);
+  } catch {
+    // ignore
+  }
+}
+function loadAutoAdvance() {
+  try {
+    return globalThis.localStorage?.getItem(AUTO_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function saveAutoAdvance(v) {
+  try {
+    globalThis.localStorage?.setItem(AUTO_KEY, v ? '1' : '0');
+  } catch {
+    // ignore
   }
 }
 
 export function initHero() {
   const stage = document.querySelector('.hero-stage > div');
-  const btn = document.querySelector('.now-playing');
-  const playGlyph = document.querySelector('.np-play');
-  const barFill = document.querySelector('.np-bar > div');
-  const timeEl = document.querySelector('.np-time');
   const switcher = document.querySelector('.vis-switcher');
-  if (!stage || !btn || !playGlyph) return () => {};
+  const autoToggle = document.querySelector('.auto-advance-toggle');
+  if (!stage) return () => {};
 
-  // — visualizer state —
+  // — visualizer source —
   const simulated = createSimulatedSpectrum({ bins: 64 });
-  let currentSource = simulated; // swapped to audio source on play
+  let currentSource = simulated;
   let currentVizId = loadVizChoice();
   let currentViz = VISUALIZERS[currentVizId](stage, currentSource);
 
+  // — cassette + audio graph (audio context built lazily on play) —
+  let audio = null;
+  let ctx = null;
+  let analyser = null;
+  let mediaSource = null;
+  let audioSource = null; // { read } from createAnalyserSpectrum
+
+  let autoAdvance = loadAutoAdvance();
+  if (autoToggle) {
+    autoToggle.setAttribute('aria-pressed', String(autoAdvance));
+    autoToggle.textContent = `auto · ${autoAdvance ? 'on' : 'off'}`;
+  }
+
+  const initialIndex = pickInitialTrack();
+
+  const cassette = initCassette({
+    initialIndex,
+    async onSwap({ toIndex }) {
+      // Glitch the visualizer in sync with the eject.
+      currentViz.triggerGlitch?.(EJECT_GLITCH_MS);
+      const wasPlaying = audio && !audio.paused;
+      if (audio) {
+        audio.pause();
+      }
+      // Mid-swap, change the source. The AnalyserNode connection is
+      // preserved across `src` changes — same MediaElementSource node.
+      if (audio) {
+        audio.src = TRACKS[toIndex].file;
+        audio.load();
+      }
+      saveTrackChoice(TRACKS[toIndex].id);
+      return wasPlaying;
+    },
+    onPlayPause({ forcePlay = false } = {}) {
+      togglePlay(forcePlay).catch((e) => {
+        console.warn('togglePlay failed', e);
+      });
+    },
+    onNext() {
+      cassette.next();
+    },
+  });
+  if (!cassette) return () => {};
+
+  // — drive the cassette's reel energy + progress every frame —
+  let pumpRaf = 0;
+  function pump() {
+    if (audioSource) {
+      const { kick } = audioSource.read();
+      cassette.pumpEnergy(kick);
+    }
+    if (audio && !audio.paused) {
+      cassette.setProgress(audio.currentTime, audio.duration);
+    }
+    pumpRaf = requestAnimationFrame(pump);
+  }
+  pumpRaf = requestAnimationFrame(pump);
+
+  function ensureAudio() {
+    if (audio) return audio;
+    audio = new Audio();
+    audio.src = TRACKS[cassette.getIndex()].file;
+    audio.preload = 'metadata';
+    audio.crossOrigin = 'anonymous';
+
+    audio.addEventListener('ended', () => {
+      cassette.setPlaying(false);
+      if (autoAdvance) {
+        // Walk through the catalog. If at the end, wrap to start.
+        const next = (cassette.getIndex() + 1) % TRACKS.length;
+        cassette.swapTo(next);
+      }
+    });
+
+    try {
+      const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
+      ctx = new Ctx();
+      mediaSource = ctx.createMediaElementSource(audio);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.85;
+      mediaSource.connect(analyser);
+      analyser.connect(ctx.destination);
+      audioSource = createAnalyserSpectrum(analyser, { bins: 64 });
+      currentSource = audioSource.read;
+      currentViz.setSource(currentSource);
+    } catch (err) {
+      console.warn('Web Audio unavailable; staying on simulated spectrum.', err);
+    }
+    return audio;
+  }
+
+  async function togglePlay(forcePlay = false) {
+    const a = ensureAudio();
+    if (a.paused || forcePlay) {
+      try {
+        if (ctx?.state === 'suspended') await ctx.resume();
+        await a.play();
+        cassette.setPlaying(true);
+      } catch (err) {
+        console.warn('Audio play() rejected; user gesture may be required.', err);
+      }
+    } else {
+      a.pause();
+      cassette.setPlaying(false);
+    }
+  }
+
+  // — visualizer switcher (existing behavior, retained) —
   const reflectSwitcherUI = () => {
     if (!switcher) return;
     for (const b of switcher.querySelectorAll('button[data-viz]')) {
@@ -92,80 +224,40 @@ export function initHero() {
   };
 
   const onSwitcherClick = (e) => {
-    const btnEl = e.target.closest('button[data-viz]');
-    if (btnEl) switchVisualizer(btnEl.dataset.viz);
+    const b = e.target.closest('button[data-viz]');
+    if (b) switchVisualizer(b.dataset.viz);
   };
   switcher?.addEventListener('click', onSwitcherClick);
 
-  // — audio + now-playing wiring —
-  let audio = null;
-  let audioSource = null;
-  let duration = 154; // fallback estimate (2:34); replaced once metadata loads
-
-  playGlyph.innerHTML = playIcon;
-
-  const updateProgress = () => {
-    if (!audio || !duration) return;
-    const pct = Math.min(100, (audio.currentTime / duration) * 100);
-    if (barFill) barFill.style.width = `${pct}%`;
-    if (timeEl) timeEl.textContent = `${fmtTime(audio.currentTime)} / ${fmtTime(duration)}`;
+  // — auto-advance toggle —
+  const onAutoToggle = () => {
+    autoAdvance = !autoAdvance;
+    saveAutoAdvance(autoAdvance);
+    autoToggle.setAttribute('aria-pressed', String(autoAdvance));
+    autoToggle.textContent = `auto · ${autoAdvance ? 'on' : 'off'}`;
   };
+  autoToggle?.addEventListener('click', onAutoToggle);
 
-  const ensureAudio = async () => {
-    if (audio) return audio;
-    audio = new Audio(AUDIO_SRC);
-    audio.preload = 'metadata';
-    audio.crossOrigin = 'anonymous';
-
-    audio.addEventListener('loadedmetadata', () => {
-      duration = audio.duration || duration;
-      updateProgress();
-    });
-    audio.addEventListener('timeupdate', updateProgress);
-    audio.addEventListener('ended', () => {
-      playGlyph.innerHTML = playIcon;
-      btn.setAttribute('aria-pressed', 'false');
-    });
-
-    try {
-      audioSource = createAudioSpectrum(audio, { bins: 64 });
-      currentSource = audioSource.read;
-      currentViz.setSource(currentSource);
-    } catch (err) {
-      console.warn('Web Audio unavailable; staying on simulated spectrum.', err);
+  // — keyboard nav: ← / → cycle tracks when the hero is in view —
+  const onKey = (e) => {
+    if (e.target instanceof HTMLElement && e.target.matches('input, textarea, [contenteditable]')) {
+      return;
     }
-    return audio;
+    if (e.key === 'ArrowRight') cassette.next();
+    else if (e.key === 'ArrowLeft') cassette.prev();
   };
-
-  const onClick = async () => {
-    const a = await ensureAudio();
-    if (a.paused) {
-      try {
-        if (audioSource) await audioSource.resume();
-        await a.play();
-        playGlyph.innerHTML = pauseIcon;
-        btn.setAttribute('aria-pressed', 'true');
-      } catch (err) {
-        console.warn('Audio play() rejected; user gesture may be required.', err);
-      }
-    } else {
-      a.pause();
-      playGlyph.innerHTML = playIcon;
-      btn.setAttribute('aria-pressed', 'false');
-    }
-  };
-
-  btn.addEventListener('click', onClick);
-  btn.setAttribute('role', 'button');
-  btn.setAttribute('aria-pressed', 'false');
-  btn.setAttribute('aria-label', 'Play preview of Gyrefolk Docks');
-  updateProgress();
+  window.addEventListener('keydown', onKey);
 
   return () => {
-    btn.removeEventListener('click', onClick);
-    switcher?.removeEventListener('click', onSwitcherClick);
+    cancelAnimationFrame(pumpRaf);
+    cassette.destroy();
     currentViz.destroy();
-    audioSource?.destroy?.();
-    audio?.pause();
+    switcher?.removeEventListener('click', onSwitcherClick);
+    autoToggle?.removeEventListener('click', onAutoToggle);
+    window.removeEventListener('keydown', onKey);
+    if (audio) audio.pause();
+    if (ctx) ctx.close().catch(() => {});
   };
 }
+
+const EJECT_GLITCH_MS = 320; // a bit longer than the eject CSS animation

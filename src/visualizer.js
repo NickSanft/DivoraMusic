@@ -53,6 +53,10 @@ export function createSimulatedSpectrum({
 }
 
 // ── audio spectrum (live AnalyserNode) ──
+//
+// createAudioSpectrum owns the whole audio graph for a single
+// audio element — useful when the visualizer is the *only* thing
+// consuming the analyser.
 export function createAudioSpectrum(audioEl, { bins = 64 } = {}) {
   const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!Ctx) throw new Error('Web Audio API unavailable');
@@ -65,13 +69,25 @@ export function createAudioSpectrum(audioEl, { bins = 64 } = {}) {
   source.connect(analyser);
   analyser.connect(ctx.destination);
 
+  return {
+    ...createAnalyserSpectrum(analyser, { bins }),
+    resume: () => ctx.resume(),
+    suspend: () => ctx.suspend(),
+    destroy: () => ctx.close(),
+  };
+}
+
+// createAnalyserSpectrum wraps an *existing* AnalyserNode. Use this
+// when one analyser is shared by multiple consumers (e.g. the hero
+// drives both the visualizer and the cassette reels off the same
+// audio graph).
+export function createAnalyserSpectrum(analyser, { bins = 64 } = {}) {
   const buf = new Uint8Array(analyser.frequencyBinCount);
   const spec = new Float32Array(bins);
   const t0 = performance.now();
 
   const read = () => {
     analyser.getByteFrequencyData(buf);
-    // downsample by averaging the source bins that map into each output bin
     const step = buf.length / bins;
     for (let i = 0; i < bins; i++) {
       let sum = 0;
@@ -80,19 +96,13 @@ export function createAudioSpectrum(audioEl, { bins = 64 } = {}) {
       for (let j = start; j < end; j++) sum += buf[j];
       spec[i] = sum / Math.max(1, end - start) / 255;
     }
-    // kick estimate: energy in the lowest 6 bins, normalized
     let kick = 0;
     for (let i = 0; i < 6; i++) kick += spec[i];
     kick = Math.min(1, (kick / 6) * 1.5);
     return { spec, frame: (performance.now() - t0) * 0.001, kick, beatPhase: 0 };
   };
 
-  return {
-    read,
-    resume: () => ctx.resume(),
-    suspend: () => ctx.suspend(),
-    destroy: () => ctx.close(),
-  };
+  return { read };
 }
 
 // ── draw one frame onto the canvas ──
@@ -156,6 +166,41 @@ function drawPrism(ctx, width, height, spec, frame, kick, { bars, dim }) {
   ctx.fill();
 }
 
+// ── tape-static (used during cassette swaps) ──
+//
+// Mimics the look of a VHS / cassette dropout: dark base, a few
+// bright horizontal scanlines tinted in the palette, and a sparse
+// sprinkle of high-luma pixels. Re-randomized per frame, so the
+// canvas "hisses" while it's on screen.
+function drawStatic(ctx, width, height) {
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#0a0414';
+  ctx.fillRect(0, 0, width, height);
+
+  const rowH = 3;
+  for (let y = 0; y < height; y += rowH) {
+    const r = Math.random();
+    if (r > 0.78) {
+      ctx.fillStyle = `rgba(196, 168, 255, ${Math.random() * 0.35})`;
+      ctx.fillRect(0, y, width, rowH);
+    } else if (r > 0.55) {
+      ctx.fillStyle = `rgba(255, 77, 143, ${Math.random() * 0.2})`;
+      ctx.fillRect(0, y, width, rowH);
+    }
+  }
+
+  // Sparse white speckle. Scaled so density looks the same across
+  // canvas sizes — about 1 dot per 220 px².
+  const speckles = (width * height) / 220;
+  for (let i = 0; i < speckles; i++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    ctx.fillStyle = `rgba(236, 228, 255, ${Math.random() * 0.4})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+}
+
 // ── prism core (SVG, scales with the kick) ──
 const PRISM_CORE_SVG = `
   <svg viewBox="0 0 240 240" aria-hidden="true">
@@ -208,6 +253,7 @@ export function mountPrismStage(container, getSpectrum, { bars = 64, dim = false
   let raf = 0;
   let running = false;
   let lastKick = 0;
+  let glitchUntil = 0;
 
   function resize() {
     const r = container.getBoundingClientRect();
@@ -230,6 +276,13 @@ export function mountPrismStage(container, getSpectrum, { bars = 64, dim = false
   resize();
 
   function renderOnce() {
+    if (performance.now() < glitchUntil) {
+      drawStatic(ctx, width, height);
+      // Hide the prism core during glitch — looks like the tape pulled.
+      coreSvg.style.opacity = '0';
+      return;
+    }
+    coreSvg.style.opacity = '1';
     const { spec, frame, kick } = activeGet();
     drawPrism(ctx, width, height, spec, frame, kick, { bars, dim });
     if (kick !== lastKick) {
@@ -273,6 +326,11 @@ export function mountPrismStage(container, getSpectrum, { bars = 64, dim = false
   return {
     setSource(nextGet) {
       activeGet = nextGet;
+    },
+    triggerGlitch(durationMs = 220) {
+      glitchUntil = performance.now() + durationMs;
+      // ensure we keep painting through the glitch window
+      if (!running && !PREFERS_REDUCED) start();
     },
     renderOnce,
     pause: stop,

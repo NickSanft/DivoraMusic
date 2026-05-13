@@ -260,87 +260,337 @@ button {
   }
 }
 
-/* now-playing widget */
-.now-playing {
+/* cassette tape (replaces the old now-playing pill) */
+.cassette {
+  --accent: var(--ember);
   position: relative;
   z-index: 3;
   pointer-events: auto;
   margin: 28px auto 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  background: rgba(10, 4, 20, 0.65);
+  width: min(360px, calc(100vw - 40px));
+  height: 150px;
+  padding: 12px 18px;
+  background:
+    linear-gradient(180deg, rgba(45, 22, 84, 0.85), rgba(26, 11, 46, 0.95)),
+    repeating-linear-gradient(
+      0deg,
+      rgba(196, 168, 255, 0.03) 0,
+      rgba(196, 168, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
   border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  grid-template-rows: 36px 1fr 28px;
+  grid-row-gap: 6px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-}
-.np-play {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--violet);
-  display: grid;
-  place-items: center;
-  color: var(--mist);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(196, 168, 255, 0.08);
   transition:
-    transform 0.1s,
-    background 0.15s;
+    transform 0.4s cubic-bezier(0.4, 0, 0.6, 1),
+    opacity 0.4s ease;
 }
-.np-play:hover {
-  background: var(--violet-2);
-  transform: scale(1.05);
+/* subtle wear texture on the cassette body */
+.cassette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.7 0 0 0 0 1 0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }
-.np-play:active {
-  transform: scale(0.97);
+
+.cassette-reels {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 56px;
 }
-.np-meta {
+/* the tape ribbon connecting the two reels */
+.cassette-reels::before {
+  content: '';
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 50%;
+  height: 5px;
+  margin-top: -2.5px;
+  background: linear-gradient(180deg, #2a1612, #6b4226, #8b5630, #6b4226, #2a1612);
+  border-top: 1px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  opacity: 0.7;
+}
+.reel {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--lilac);
+  border-radius: 50%;
+  background: radial-gradient(circle, #3a1c5a 30%, #0c0418 100%);
+  z-index: 1;
+}
+.reel::before,
+.reel::after {
+  content: '';
+  position: absolute;
+  background: var(--lilac);
+  opacity: 0.55;
+}
+.reel::before {
+  left: 50%;
+  top: 5px;
+  bottom: 5px;
+  width: 1.2px;
+  margin-left: -0.6px;
+}
+.reel::after {
+  top: 50%;
+  left: 5px;
+  right: 5px;
+  height: 1.2px;
+  margin-top: -0.6px;
+}
+
+.cassette-label {
+  position: relative;
+  text-align: center;
+  padding: 6px 10px;
+  background: rgba(196, 168, 255, 0.05);
+  border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: left;
-  min-width: 140px;
+  justify-content: center;
+  overflow: hidden;
 }
-.np-title {
-  display: block;
+.cassette-label::before {
+  /* album-keyed accent stripe down the left edge */
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  bottom: -1px;
+  width: 4px;
+  background: var(--accent);
+}
+.cassette-label .ttl {
   font-family: var(--f-display);
-  font-size: 14px;
-  letter-spacing: 0.2em;
-}
-.np-sub {
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mist);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: block;
+}
+.cassette-label .ttl-text {
+  display: inline-block;
+  animation: cassette-wobble 6s ease-in-out infinite;
+}
+.cassette-label .sub {
   font-family: var(--f-mono);
   font-size: 9px;
-  color: var(--lilac);
-  opacity: 0.6;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-top: 3px;
 }
-.np-bar {
-  display: none;
-  width: 160px;
+@keyframes cassette-wobble {
+  0%,
+  100% {
+    transform: rotate(-0.4deg);
+  }
+  50% {
+    transform: rotate(0.4deg);
+  }
+}
+
+.cassette-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--lilac);
+}
+.cassette-play {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--violet);
+  color: var(--mist);
+  display: grid;
+  place-items: center;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+.cassette-play:hover {
+  background: var(--violet-2);
+}
+.cassette-play:active {
+  transform: scale(0.95);
+}
+.cassette-bar {
   height: 2px;
   background: var(--line);
   overflow: hidden;
 }
-.np-bar > div {
+.cassette-bar > div {
   height: 100%;
-  background: linear-gradient(90deg, var(--violet), var(--ember));
   width: 0;
-  transition: width 0.1s linear;
+  background: linear-gradient(90deg, var(--violet), var(--accent));
+  transition: width 0.15s linear;
 }
-.np-time {
-  font-family: var(--f-mono);
-  font-size: 10px;
-  color: var(--lilac);
-  opacity: 0.7;
-  letter-spacing: 0.1em;
-  min-width: 76px;
+.cassette-time {
+  min-width: 78px;
   text-align: right;
 }
-@media (min-width: 720px) {
-  .np-bar {
-    display: block;
+.cassette-next {
+  opacity: 0.7;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
+  padding: 0 4px;
+  color: inherit;
+}
+.cassette-next:hover {
+  opacity: 1;
+  color: var(--mist);
+}
+
+/* eject + insert animations driven by JS class toggles */
+.cassette.ejecting {
+  animation: cassette-eject 500ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+}
+@keyframes cassette-eject {
+  0% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(40px) rotate(-2deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(220px) rotate(-4deg);
+    opacity: 0;
+  }
+}
+.cassette.inserting {
+  animation: cassette-insert 600ms cubic-bezier(0.2, 0.85, 0.4, 1.05) forwards;
+}
+@keyframes cassette-insert {
+  0% {
+    transform: translateY(-220px) rotate(3deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(8px) rotate(-0.5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+/* track switcher under the cassette */
+.track-switcher {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  margin: 16px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100vw - 40px);
+}
+.track-switcher button {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lilac);
+  background: rgba(10, 4, 20, 0.5);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.track-switcher button:hover {
+  opacity: 0.95;
+  border-color: var(--line-2);
+}
+.track-switcher button[aria-selected='true'] {
+  opacity: 1;
+  color: var(--mist);
+  border-color: var(--line-2);
+  background: rgba(124, 58, 237, 0.12);
+}
+.track-switcher .ts-num {
+  color: var(--ember);
+  margin-right: 6px;
+}
+
+/* small toggle row for things like auto-advance */
+.hero-toggles {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  margin: 12px auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.hero-toggles button {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--lilac);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.hero-toggles button:hover {
+  opacity: 0.95;
+}
+.hero-toggles button[aria-pressed='true'] {
+  opacity: 1;
+  color: var(--mist);
+  border-color: var(--ember);
+}
+
+/* reduced-motion: kill wobble + eject/insert animations */
+@media (prefers-reduced-motion: reduce) {
+  .cassette-label .ttl-text {
+    animation: none;
+  }
+  .cassette.ejecting,
+  .cassette.inserting {
+    animation: none;
   }
 }
 

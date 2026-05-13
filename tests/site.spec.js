@@ -32,7 +32,20 @@ test.describe('nav', () => {
   test('anchor click lands at the section, offset by header', async ({ page }) => {
     await page.goto(HOME);
     await page.click('.nav-links a[href="#latest"]');
-    await page.waitForTimeout(800); // smooth scroll
+    // Poll until scrollY stops moving — chromium's smooth-scroll
+    // duration depends on distance, and the hero is tall enough that
+    // a fixed 800ms wasn't reliable.
+    await page.waitForFunction(
+      () => {
+        if (!window.__lastY) window.__lastY = -1;
+        const y = window.scrollY;
+        const stable = y === window.__lastY;
+        window.__lastY = y;
+        return stable && y > 100;
+      },
+      undefined,
+      { polling: 120, timeout: 5000 },
+    );
     const { scrollY, targetTop } = await page.evaluate(() => ({
       scrollY: window.scrollY,
       targetTop: document.getElementById('latest').getBoundingClientRect().top + window.scrollY,
@@ -167,6 +180,87 @@ test.describe('hero visualizer', () => {
       'data-viz',
       'linear',
     );
+  });
+});
+
+test.describe('cassette + tracks', () => {
+  test('initial cassette shows the default track', async ({ page }) => {
+    await page.goto(HOME);
+    const tape = page.locator('.cassette');
+    await expect(tape).toBeVisible();
+    await expect(tape).toHaveAttribute('data-track', 'gyrefolk-docks');
+    await expect(tape.locator('.ttl-text')).toHaveText('Gyrefolk Docks');
+    await expect(tape.locator('.sub')).toHaveText(/OMINOUS · 01/);
+  });
+
+  test('three reels-bearing tracks appear in the track switcher', async ({ page }) => {
+    await page.goto(HOME);
+    await expect(page.locator('.track-switcher button')).toHaveCount(3);
+    await expect(page.locator('.track-switcher button[aria-selected="true"]')).toContainText(
+      'Gyrefolk Docks',
+    );
+  });
+
+  test('clicking the next button cycles tracks', async ({ page }) => {
+    await page.goto(HOME);
+    await page.click('.cassette-next');
+    const tape = page.locator('.cassette');
+    await expect(tape).toHaveAttribute('data-track', 'corruption-can-be-fun');
+    await expect(tape.locator('.ttl-text')).toHaveText('Corruption Can Be Fun');
+    // accent var follows the album — both Ominous tracks share magenta.
+    const accent = await tape.evaluate((el) =>
+      getComputedStyle(el).getPropertyValue('--accent').trim(),
+    );
+    expect(accent).toBe('#ff4d8f');
+  });
+
+  test('clicking a track-switcher button swaps directly to that track', async ({ page }) => {
+    await page.goto(HOME);
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    const tape = page.locator('.cassette');
+    await expect(tape).toHaveAttribute('data-track', 'origins-of-the-gyre');
+    await expect(tape.locator('.sub')).toHaveText(/ORIGINS · 03/);
+    // Origins tracks use amber accent.
+    const accent = await tape.evaluate((el) =>
+      getComputedStyle(el).getPropertyValue('--accent').trim(),
+    );
+    expect(accent).toBe('#ffb86b');
+  });
+
+  test('arrow keys cycle tracks (← prev, → next)', async ({ page }) => {
+    await page.goto(HOME);
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'corruption-can-be-fun');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'gyrefolk-docks');
+    // wrap-around: previous from track 1 = last track
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'origins-of-the-gyre');
+  });
+
+  test('track choice persists across reload', async ({ page }) => {
+    await page.goto(HOME);
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'origins-of-the-gyre');
+    // ?test=1 forces deterministic-start, so drop the flag for the
+    // persistence-reload to actually exercise localStorage.
+    await page.goto('/');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'origins-of-the-gyre');
+  });
+
+  test('auto-advance toggle persists in localStorage', async ({ page }) => {
+    await page.goto(HOME);
+    const toggle = page.locator('.auto-advance-toggle');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle).toHaveText(/auto · on/i);
+
+    const stored = await page.evaluate(() => globalThis.localStorage?.getItem('divora:auto'));
+    expect(stored).toBe('1');
+
+    await page.reload();
+    await expect(page.locator('.auto-advance-toggle')).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
