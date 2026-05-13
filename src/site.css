@@ -260,18 +260,58 @@ button {
   }
 }
 
-/* cassette tape (replaces the old now-playing pill) */
+/* hero-controls — the whole bottom strip (tape player + switchers).
+   Positioned absolutely at the bottom of the hero so it sits below
+   the visualizer ring rather than blocking the prism core. */
+.hero-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+  max-width: calc(100vw - 40px);
+}
+
+/* tape-player wraps the deck slot + the static controls strip. The
+   cassette itself sits inside the slot and animates; controls are
+   outside the slot so they don't move with the eject/insert. */
+.tape-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* deck-slot — the "opening" the cassette emerges from. overflow:hidden
+   means the cassette disappears once its translate exceeds 100%. */
+.deck-slot {
+  position: relative;
+  width: min(320px, calc(100vw - 40px));
+  height: 195px;
+  overflow: hidden;
+  border-radius: 6px;
+  /* subtle inset shadow hints at the slot's depth */
+  box-shadow:
+    inset 0 -10px 20px -10px rgba(0, 0, 0, 0.6),
+    inset 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* cassette tape — Sony Compact Cassette proportions (~1.56:1).
+   320 × 195 is 1.64:1, slightly wider than spec to leave room for
+   readable label text. Pure visual now — no controls inside. */
 .cassette {
   --accent: var(--ember);
   position: relative;
-  z-index: 3;
-  pointer-events: auto;
-  margin: 28px auto 0;
-  width: min(360px, calc(100vw - 40px));
-  height: 150px;
-  padding: 12px 18px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 18px 6px;
   background:
-    linear-gradient(180deg, rgba(45, 22, 84, 0.85), rgba(26, 11, 46, 0.95)),
+    linear-gradient(180deg, rgba(45, 22, 84, 0.92), rgba(20, 9, 38, 0.96)),
     repeating-linear-gradient(
       0deg,
       rgba(196, 168, 255, 0.03) 0,
@@ -282,18 +322,15 @@ button {
   border: 1px solid var(--line);
   border-radius: 6px;
   display: grid;
-  grid-template-rows: 36px 1fr 28px;
-  grid-row-gap: 6px;
+  grid-template-rows: 56px 1fr 14px;
+  grid-row-gap: 8px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(196, 168, 255, 0.08);
-  transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.6, 1),
-    opacity 0.4s ease;
 }
-/* subtle wear texture on the cassette body */
+/* subtle grain wear texture on the cassette body */
 .cassette::after {
   content: '';
   position: absolute;
@@ -310,57 +347,78 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 56px;
+  padding: 0 30px;
 }
-/* the tape ribbon connecting the two reels */
+/* the brown tape ribbon connecting the two reels */
 .cassette-reels::before {
   content: '';
   position: absolute;
-  left: 56px;
-  right: 56px;
+  left: 30px;
+  right: 30px;
   top: 50%;
-  height: 5px;
-  margin-top: -2.5px;
+  height: 6px;
+  margin-top: -3px;
   background: linear-gradient(180deg, #2a1612, #6b4226, #8b5630, #6b4226, #2a1612);
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-  opacity: 0.7;
+  border-top: 1px solid rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+  opacity: 0.75;
 }
 .reel {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
   border: 1px solid var(--lilac);
   border-radius: 50%;
   background: radial-gradient(circle, #3a1c5a 30%, #0c0418 100%);
   z-index: 1;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
 }
-.reel::before,
+/* central hub */
+.reel::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border: 1px solid var(--lilac);
+  border-radius: 50%;
+  opacity: 0.65;
+  background: radial-gradient(circle, #1a0b2e 40%, #0c0418 100%);
+}
+/* six spokes radiating from the hub */
 .reel::after {
   content: '';
   position: absolute;
-  background: var(--lilac);
-  opacity: 0.55;
-}
-.reel::before {
-  left: 50%;
-  top: 5px;
-  bottom: 5px;
-  width: 1.2px;
-  margin-left: -0.6px;
-}
-.reel::after {
-  top: 50%;
-  left: 5px;
-  right: 5px;
-  height: 1.2px;
-  margin-top: -0.6px;
+  inset: 4px;
+  border-radius: 50%;
+  background:
+    linear-gradient(
+      0deg,
+      transparent 47%,
+      rgba(196, 168, 255, 0.55) 47%,
+      rgba(196, 168, 255, 0.55) 53%,
+      transparent 53%
+    ),
+    linear-gradient(
+      60deg,
+      transparent 47%,
+      rgba(196, 168, 255, 0.55) 47%,
+      rgba(196, 168, 255, 0.55) 53%,
+      transparent 53%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 47%,
+      rgba(196, 168, 255, 0.55) 47%,
+      rgba(196, 168, 255, 0.55) 53%,
+      transparent 53%
+    );
+  -webkit-mask: radial-gradient(circle, black 30%, black 70%, transparent 71%);
+  mask: radial-gradient(circle, black 30%, black 70%, transparent 71%);
 }
 
 .cassette-label {
   position: relative;
   text-align: center;
-  padding: 6px 10px;
+  padding: 8px 14px;
   background: rgba(196, 168, 255, 0.05);
   border: 1px solid var(--line);
   display: flex;
@@ -378,17 +436,28 @@ button {
   width: 4px;
   background: var(--accent);
 }
+.cassette-brand {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  font-family: var(--f-mono);
+  font-size: 8px;
+  letter-spacing: 0.32em;
+  color: var(--lilac);
+  opacity: 0.8;
+}
 .cassette-label .ttl {
   font-family: var(--f-display);
-  font-size: 18px;
-  letter-spacing: 0.12em;
+  font-size: 22px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--mist);
-  line-height: 1;
+  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
+  margin-top: 4px;
 }
 .cassette-label .ttl-text {
   display: inline-block;
@@ -401,7 +470,7 @@ button {
   text-transform: uppercase;
   color: var(--accent);
   opacity: 0.85;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 @keyframes cassette-wobble {
   0%,
@@ -413,7 +482,28 @@ button {
   }
 }
 
-.cassette-controls {
+/* the tape "window" at the bottom of the cassette — the slit where
+   the tape passes the play head on a real Compact Cassette */
+.cassette-window {
+  position: relative;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.6));
+}
+.cassette-window::after {
+  content: '';
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  top: 3px;
+  bottom: 2px;
+  background: linear-gradient(180deg, #2a1612, #6b4226, #8b5630);
+  border-top: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 1px;
+}
+
+/* deck-controls — the static strip below the cassette (play, progress,
+   time, next). Outside the deck-slot so it doesn't animate. */
+.deck-controls {
+  width: min(320px, calc(100vw - 40px));
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
@@ -469,22 +559,25 @@ button {
   color: var(--mist);
 }
 
-/* eject + insert animations driven by JS class toggles */
+/* eject + insert animations: cassette translates within the slot.
+   Eject pushes the tape down out the bottom; insert brings the new
+   tape UP from below into position. The slot's overflow:hidden hides
+   the offscreen states. */
 .cassette.ejecting {
   animation: cassette-eject 500ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
   pointer-events: none;
 }
 @keyframes cassette-eject {
   0% {
-    transform: translateY(0) rotate(0);
+    transform: translateY(0);
     opacity: 1;
   }
   60% {
-    transform: translateY(40px) rotate(-2deg);
+    transform: translateY(40%);
     opacity: 0.85;
   }
   100% {
-    transform: translateY(220px) rotate(-4deg);
+    transform: translateY(110%);
     opacity: 0;
   }
 }
@@ -493,15 +586,15 @@ button {
 }
 @keyframes cassette-insert {
   0% {
-    transform: translateY(-220px) rotate(3deg);
+    transform: translateY(110%);
     opacity: 0;
   }
   60% {
-    transform: translateY(8px) rotate(-0.5deg);
+    transform: translateY(-3%);
     opacity: 1;
   }
   100% {
-    transform: translateY(0) rotate(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -511,7 +604,6 @@ button {
   position: relative;
   z-index: 3;
   pointer-events: auto;
-  margin: 16px auto 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -527,7 +619,9 @@ button {
   background: rgba(10, 4, 20, 0.5);
   border: 1px solid var(--line);
   padding: 8px 12px;
-  opacity: 0.6;
+  /* opacity 0.85 (not lower) keeps the ember-colored track number
+     above WCAG AA 4.5:1 contrast at 10px. */
+  opacity: 0.85;
   transition:
     opacity 0.15s,
     color 0.15s,
@@ -554,7 +648,6 @@ button {
   position: relative;
   z-index: 3;
   pointer-events: auto;
-  margin: 12px auto 0;
   display: flex;
   justify-content: center;
   gap: 8px;
@@ -599,7 +692,6 @@ button {
   position: relative;
   z-index: 3;
   pointer-events: auto;
-  margin: 14px auto 0;
   display: inline-flex;
   align-items: center;
   gap: 2px;

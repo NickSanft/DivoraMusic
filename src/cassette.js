@@ -44,10 +44,13 @@ export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } =
   const tape = document.querySelector('.cassette');
   const lblTitle = tape?.querySelector('.cassette-label .ttl-text');
   const lblSub = tape?.querySelector('.cassette-label .sub');
-  const timeEl = tape?.querySelector('.cassette-time');
-  const barEl = tape?.querySelector('.cassette-bar > div');
-  const playBtn = tape?.querySelector('.cassette-play');
-  const nextBtn = tape?.querySelector('.cassette-next');
+  // Controls live outside the cassette now (in .deck-controls under
+  // .tape-player) so they don't animate with the eject/insert.
+  const controls = document.querySelector('.deck-controls');
+  const timeEl = controls?.querySelector('.cassette-time');
+  const barEl = controls?.querySelector('.cassette-bar > div');
+  const playBtn = controls?.querySelector('.cassette-play');
+  const nextBtn = controls?.querySelector('.cassette-next');
   const trackSwitcher = document.querySelector('.track-switcher');
   if (!tape || !lblTitle || !playBtn || !nextBtn) return null;
 
