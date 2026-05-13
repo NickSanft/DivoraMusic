@@ -1,0 +1,110 @@
+/* Divora — shared tokens across all directions
+   Purple palette anchored on #1a0b2e bg, #7c3aed primary.
+   Warm accent: magenta/coral.
+
+   Production version: fonts are self-hosted via @fontsource (woff2),
+   not the Google Fonts CDN. Weights match the prototype's
+   `family=Anton&family=Oswald:wght@300;400;500;600;700&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400` request.
+*/
+
+/* — self-hosted fonts — */
+@import '@fontsource/anton/400.css';
+
+@import '@fontsource/oswald/300.css';
+@import '@fontsource/oswald/400.css';
+@import '@fontsource/oswald/500.css';
+@import '@fontsource/oswald/600.css';
+@import '@fontsource/oswald/700.css';
+
+@import '@fontsource/inter-tight/300.css';
+@import '@fontsource/inter-tight/400.css';
+@import '@fontsource/inter-tight/500.css';
+@import '@fontsource/inter-tight/600.css';
+@import '@fontsource/inter-tight/700.css';
+
+@import '@fontsource/jetbrains-mono/300.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+@import '@fontsource/cormorant-garamond/300.css';
+@import '@fontsource/cormorant-garamond/400.css';
+@import '@fontsource/cormorant-garamond/500.css';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/300-italic.css';
+@import '@fontsource/cormorant-garamond/400-italic.css';
+
+:root {
+  /* core purples */
+  --void: #0a0414;
+  --ink: #12081f;
+  --bg: #1a0b2e;
+  --bg-2: #241246;
+  --shade: #2d1654;
+  --violet: #7c3aed;
+  --violet-2: #9d5cff;
+  --lilac: #c4a8ff;
+  --mist: #ece4ff;
+
+  /* warm accents */
+  --ember: #ff4d8f; /* magenta */
+  --coral: #ff6b6b;
+  --candle: #ffb86b; /* candle glow */
+
+  /* surfaces */
+  --paper: #f4eee6; /* dark academia parchment */
+  --aged: #d9c9a7;
+
+  /* glassy lines */
+  --line: rgba(196, 168, 255, 0.18);
+  --line-2: rgba(196, 168, 255, 0.32);
+
+  /* type */
+  --f-display: 'Anton', 'Oswald', 'Bebas Neue', 'Impact', sans-serif;
+  --f-ui: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --f-serif: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+}
+
+/* shared visual primitives */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.7 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 200;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(5, 0, 15, 0.7) 100%);
+}
+
+/* type helpers */
+.t-display {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  line-height: 0.85;
+}
+.t-condensed {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.t-mono {
+  font-family: var(--f-mono);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.t-serif {
+  font-family: var(--f-serif);
+  font-weight: 300;
+  font-style: italic;
+}

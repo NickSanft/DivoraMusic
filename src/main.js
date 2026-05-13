@@ -1,3 +1,5 @@
-// Divora — main site entry. Phase 0 stub; site modules land in Phase 1–2.
+// Divora — main site entry. Site modules land in Phase 2.
+import './tokens.css';
+
 // eslint-disable-next-line no-console
 console.info('Divora scaffold loaded.');

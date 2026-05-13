@@ -29,3 +29,7 @@ Thumbs.db
 
 # local Claude Code state
 .claude/
+
+# raw audio source assets — transcoded MP3 in public/audio/ is what we ship
+design_handoff_divora/music/*.wav
+

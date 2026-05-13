@@ -1,0 +1,21 @@
+# Normalize line endings to LF in the repo; checkouts respect platform.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings or attempt diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.otf binary
+*.mp3 binary
+*.wav binary
+*.m4a binary
+*.aac binary
+*.ogg binary
+*.opus binary
+*.webp binary
+*.avif binary
