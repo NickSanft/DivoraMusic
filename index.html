@@ -6,17 +6,347 @@
     <title>Divora · Official Website</title>
     <meta
       name="description"
-      content="Divora — a musician in Nashville making synth, drum and bass, and whatever music feels true. Three folios. One signal."
+      content="Divora — a musician in Nashville making synth, drum and bass, and whatever music feels true. Two folios. One signal."
     />
     <meta name="theme-color" content="#1a0b2e" />
+    <link rel="canonical" href="https://nick.sanft.com/music/" />
+
+    <!-- favicon: hex prism mark -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><polygon points='11,2 19,7 19,15 11,20 3,15 3,7' fill='%231a0b2e' stroke='%23c4a8ff' stroke-width='1.2'/><polygon points='11,2 19,7 11,11 3,7' fill='%237c3aed' opacity='0.7'/></svg>"
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Divora · Official Website" />
+    <meta
+      property="og:description"
+      content="A musician in Nashville making synth, drum and bass, and whatever music feels true."
+    />
+    <meta property="og:url" content="https://nick.sanft.com/music/" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Divora · Official Website" />
+    <meta
+      name="twitter:description"
+      content="A musician in Nashville making synth, drum and bass, and whatever music feels true."
+    />
+
+    <!-- Structured data: MusicGroup -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "MusicGroup",
+        "name": "Divora",
+        "url": "https://nick.sanft.com/music/",
+        "foundingLocation": "Nashville, TN",
+        "foundingDate": "2013",
+        "sameAs": ["https://divora.bandcamp.com/"],
+        "email": "divoramusic@gmail.com",
+        "genre": ["Synth", "Drum and Bass", "Soundtrack"]
+      }
+    </script>
+
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
-    <div id="root">
-      <!-- Phase 0 scaffold. Real markup lands in Phase 1–2. -->
+    <div class="page">
+      <!-- ─── sticky nav ─── -->
+      <header class="nav">
+        <a href="#hero" class="nav-brand" aria-label="Divora — home">
+          <svg viewBox="0 0 22 22" aria-hidden="true">
+            <polygon
+              points="11,2 19,7 19,15 11,20 3,15 3,7"
+              fill="none"
+              stroke="var(--lilac)"
+              stroke-width="1.2"
+            />
+            <polygon points="11,2 19,7 11,11 3,7" fill="var(--violet)" opacity="0.7" />
+          </svg>
+          DIVORA
+        </a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#about">About</a>
+          <a href="#latest">Latest</a>
+          <a href="#discography">Discography</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <span class="nav-status">● LIVE · NASHVILLE</span>
+        <button class="nav-burger" type="button" aria-label="Open menu">
+          <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true">
+            <line x1="0" y1="1" x2="14" y2="1" stroke="var(--mist)" stroke-width="1.2" />
+            <line x1="0" y1="5" x2="14" y2="5" stroke="var(--mist)" stroke-width="1.2" />
+            <line x1="0" y1="9" x2="14" y2="9" stroke="var(--mist)" stroke-width="1.2" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="nav-overlay" aria-hidden="true">
+        <nav aria-label="Mobile">
+          <a href="#about">About</a>
+          <a href="#latest">Latest</a>
+          <a href="#discography">Discography</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </div>
+
+      <!-- ─── hero ─── -->
+      <section id="hero" class="hero">
+        <div class="hero-stage" aria-hidden="true">
+          <div></div>
+        </div>
+
+        <div class="hero-overlay">
+          <div class="hero-eyebrow">est. mmxiii · nashville</div>
+          <h1 class="hero-title">DIVORA</h1>
+          <p class="hero-tag">synth · drum &amp; bass · whatever I feel like</p>
+
+          <button class="now-playing" type="button">
+            <span class="np-play"></span>
+            <span class="np-meta">
+              <span class="np-title">GYREFOLK DOCKS</span>
+              <span class="np-sub">Divora · Latest</span>
+            </span>
+            <span class="np-bar"><div></div></span>
+            <span class="np-time">00:00 / 02:34</span>
+          </button>
+        </div>
+
+        <div class="hero-meta">
+          <span>now playing · gyrefolk docks</span>
+          <span>↓ scroll</span>
+        </div>
+      </section>
+
+      <!-- ─── about ─── -->
+      <section id="about" class="s">
+        <div class="s-inner">
+          <div class="s-label reveal">I · The Artist</div>
+          <div class="about">
+            <div class="about-photo reveal">
+              <svg
+                class="frame"
+                viewBox="0 0 100 133"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <polygon
+                  points="50,1 99,25 99,108 50,132 1,108 1,25"
+                  fill="none"
+                  stroke="var(--lilac)"
+                  stroke-width="0.3"
+                  opacity="0.6"
+                />
+                <polygon
+                  points="50,3 97,26 97,107 50,130 3,107 3,26"
+                  fill="none"
+                  stroke="var(--violet)"
+                  stroke-width="0.15"
+                  opacity="0.5"
+                />
+              </svg>
+              <div class="clip">
+                <img src="./divora.png" alt="Divora — portrait" loading="lazy" />
+              </div>
+              <div class="leak" aria-hidden="true"></div>
+            </div>
+
+            <div class="about-body">
+              <p class="quote reveal">
+                A musician in Nashville making synth, drum &amp; bass, and whatever music feels
+                true.
+              </p>
+              <div class="reveal">
+                <p>
+                  Writing under the name Divora since 2013 — three records, fourteen tracks, no
+                  genre.
+                </p>
+                <p>Some songs arrive as cathedrals. Some arrive as static. Both get released.</p>
+              </div>
+              <div class="about-stats reveal">
+                <div class="about-stat"><b>03</b>Albums</div>
+                <div class="about-stat"><b>14</b>Tracks</div>
+                <div class="about-stat"><b>2013</b>Est.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── latest transmission ─── -->
+      <section id="latest" class="s">
+        <div class="s-inner">
+          <div class="s-label reveal">II · Latest Transmission</div>
+          <div class="latest">
+            <div class="latest-meta reveal">
+              <span class="badge">new · 2026</span>
+              <h2 class="latest-album">Ominous Augury</h2>
+              <p class="latest-blurb">
+                Ten ambient and battle cues for the seventh chapter of an ongoing campaign.
+              </p>
+              <div class="latest-tracks">
+                <div class="row">
+                  <span class="n">01</span><span class="ttl">Beneath Saydlis Lake — Ambient</span
+                  ><span>1:21</span>
+                </div>
+                <div class="row">
+                  <span class="n">02</span><span class="ttl">Chilling in a Makeshift Camp</span
+                  ><span>1:17</span>
+                </div>
+                <div class="row">
+                  <span class="n">03</span><span class="ttl">Party Cave</span><span>1:28</span>
+                </div>
+                <div class="row">
+                  <span class="n">04</span><span class="ttl">The Weeping Wall</span
+                  ><span>1:20</span>
+                </div>
+                <div class="row">
+                  <span class="n">05</span
+                  ><span class="ttl">Drifting in the Astral Paring (Ambient)</span><span>2:12</span>
+                </div>
+                <div class="row">
+                  <span class="n">06</span><span class="ttl">Drifting in the Astral Paring</span
+                  ><span>1:55</span>
+                </div>
+                <div class="row">
+                  <span class="n">07</span><span class="ttl">Glimmersong Forest</span
+                  ><span>2:14</span>
+                </div>
+                <div class="row">
+                  <span class="n">08</span><span class="ttl">Outpacing</span><span>1:56</span>
+                </div>
+                <div class="row">
+                  <span class="n">09</span><span class="ttl">Underneath The Spire</span
+                  ><span>2:03</span>
+                </div>
+                <div class="row">
+                  <span class="n">10</span><span class="ttl">Corruption Can Be Fun</span
+                  ><span>2:20</span>
+                </div>
+              </div>
+            </div>
+            <div class="latest-embed reveal">
+              <iframe
+                src="https://bandcamp.com/EmbeddedPlayer/album=3212030019/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                title="Divora — Ominous Augury (Bandcamp player)"
+                seamless
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── discography ─── -->
+      <section id="discography" class="s">
+        <div class="s-inner">
+          <div class="s-label reveal">III · Discography</div>
+          <h2 class="s-title reveal">Two folios.<br />One signal.</h2>
+          <div class="disco-grid">
+            <div class="disco-item reveal">
+              <span class="disco-num">FOL. I</span>
+              <h3>Origins Of The Gyre</h3>
+              <span class="yr">MMXXV · 2025</span>
+              <iframe
+                src="https://bandcamp.com/EmbeddedPlayer/album=1491704455/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                title="Divora — Origins Of The Gyre (Bandcamp player)"
+                seamless
+                loading="lazy"
+              ></iframe>
+            </div>
+            <div class="disco-item reveal" style="transition-delay: 80ms">
+              <span class="disco-num">FOL. II</span>
+              <h3>Physiognomy</h3>
+              <span class="yr">MMXXI · 2021</span>
+              <iframe
+                src="https://bandcamp.com/EmbeddedPlayer/album=95361347/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                title="Divora — Physiognomy (Bandcamp player)"
+                seamless
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── contact ─── -->
+      <section id="contact" class="s">
+        <div class="s-inner">
+          <div class="s-label reveal">IV · Get In Touch</div>
+          <div class="contact">
+            <div class="reveal">
+              <p class="pitch">
+                Bookings, collaborations, prayers. Reach out — the door is unlocked.
+              </p>
+              <a
+                href="mailto:divoramusic@gmail.com"
+                class="email"
+                data-email="divoramusic@gmail.com"
+              >
+                divoramusic@gmail.com
+                <span class="copy" title="Copy">⎘ copy</span>
+              </a>
+            </div>
+            <div class="socials reveal">
+              <a href="mailto:divoramusic@gmail.com" aria-label="Email Divora">
+                <svg
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1"
+                  aria-hidden="true"
+                >
+                  <rect x="1" y="3" width="12" height="9" />
+                  <path d="M1 4 L7 8 L13 4" />
+                </svg>
+                Mail
+              </a>
+              <a
+                href="https://divora.bandcamp.com/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Divora on Bandcamp"
+              >
+                <svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+                  <polygon points="0,11 4,3 14,3 10,11" />
+                </svg>
+                Bandcamp
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── footer ─── -->
+      <footer>
+        <span>© 2013 — 2026 · Divora · All rights reserved</span>
+        <span class="right">Nashville · Built with care</span>
+      </footer>
+
+      <!-- ─── hidden lab discovery hint ─── -->
+      <a href="lab.html" class="lab-hint" title="Enter the lab" aria-label="Enter the lab">
+        <svg
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="var(--lilac)"
+          stroke-width="1"
+          aria-hidden="true"
+        >
+          <polygon points="7,1.5 12,4.5 12,9.5 7,12.5 2,9.5 2,4.5" />
+          <circle cx="7" cy="7" r="1.5" fill="var(--ember)" stroke="none" />
+        </svg>
+      </a>
     </div>
+
     <noscript>
-      <p>Divora — contact: <a href="mailto:divoramusic@gmail.com">divoramusic@gmail.com</a></p>
+      <p style="padding: 40px; color: #c4a8ff">
+        Divora — contact:
+        <a href="mailto:divoramusic@gmail.com" style="color: #fff">divoramusic@gmail.com</a>
+      </p>
     </noscript>
   </body>
 </html>

@@ -6,11 +6,112 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>/lab · Divora</title>
     <meta name="theme-color" content="#0a0414" />
+
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><polygon points='11,2 19,7 19,15 11,20 3,15 3,7' fill='%230a0414' stroke='%23ff4d8f' stroke-width='1.2'/><polygon points='11,2 19,7 11,11 3,7' fill='%237c3aed' opacity='0.7'/></svg>"
+    />
+
     <script type="module" src="/src/lab.js"></script>
   </head>
   <body>
-    <div id="root">
-      <!-- Phase 0 scaffold. Experiment cards land in Phase 2. -->
+    <div class="lab-page">
+      <header class="lab-header">
+        <a href="index.html" class="lab-back">
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+            <path d="M9 2 L3 7 L9 12" fill="none" stroke="currentColor" stroke-width="1.2" />
+          </svg>
+          <span>return to surface</span>
+        </a>
+        <div class="lab-brand">
+          <span class="lab-brand-tag">/lab</span>
+          <span class="lab-brand-sub">// hidden chambers · v0.3</span>
+        </div>
+        <span class="lab-status">esc to exit</span>
+      </header>
+
+      <section class="lab-intro">
+        <h1>You found the lab.</h1>
+        <p>
+          Sketches and code-ghosts. Some of these will end up in the visualizer. Some won&rsquo;t.
+          None of them work yet.
+        </p>
+      </section>
+
+      <section class="lab-grid">
+        <article class="lab-card">
+          <div class="lab-screen" data-exp="reliquary"></div>
+          <header>
+            <span class="lab-num">01</span>
+            <h3>Spectral Reliquary</h3>
+          </header>
+          <p>The shipping visualizer. Radial spectrum with refracted rings.</p>
+          <code>visualizer.js :: mountPrismStage</code>
+        </article>
+
+        <article class="lab-card">
+          <div class="lab-screen" data-exp="linear"></div>
+          <header>
+            <span class="lab-num">02</span>
+            <h3>Linear / Subway</h3>
+          </header>
+          <p>Old-school FFT bars with gradient fill. Stronger on phones.</p>
+          <code>experiments/linear_bars.js</code>
+        </article>
+
+        <article class="lab-card">
+          <div class="lab-screen" data-exp="particle"></div>
+          <header>
+            <span class="lab-num">03</span>
+            <h3>Particle Reliquary</h3>
+          </header>
+          <p>300 particles orbiting the core; outward push on the kick.</p>
+          <code>experiments/particles.js</code>
+        </article>
+
+        <article class="lab-card">
+          <div class="lab-screen" data-exp="hexlattice"></div>
+          <header>
+            <span class="lab-num">04</span>
+            <h3>Hexlattice</h3>
+          </header>
+          <p>Three counter-rotating hex rings + radial spokes. Wireframe sigil.</p>
+          <code>experiments/hexlattice.js</code>
+        </article>
+
+        <article class="lab-card lab-card-wide">
+          <div class="lab-screen lab-screen-term">
+            <div class="lab-term" data-exp="terminal"></div>
+          </div>
+          <header>
+            <span class="lab-num">05</span>
+            <h3>boot.divora</h3>
+          </header>
+          <p>The boot sequence I&rsquo;d show before the page loads if I were feeling indulgent.</p>
+          <code>system/boot.js</code>
+        </article>
+
+        <article class="lab-card">
+          <div class="lab-screen lab-screen-quote">
+            <blockquote>
+              <p>Some songs arrive as cathedrals. Some arrive as static.</p>
+              <p>Both get released.</p>
+            </blockquote>
+          </div>
+          <header>
+            <span class="lab-num">06</span>
+            <h3>Working Note</h3>
+          </header>
+          <p>Pinned to the wall of the studio. The whole pitch in two lines.</p>
+          <code>notes/manifesto.md</code>
+        </article>
+      </section>
+
+      <footer class="lab-footer">
+        <span>/lab is undocumented · do not link · 26.05.12</span>
+        <a href="index.html">↩ surface</a>
+      </footer>
     </div>
   </body>
 </html>

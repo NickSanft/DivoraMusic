@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /lab.html
+Disallow: /lab
+
+Sitemap: https://nick.sanft.com/music/sitemap.xml
