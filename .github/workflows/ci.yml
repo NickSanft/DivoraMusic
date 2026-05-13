@@ -90,7 +90,12 @@ jobs:
   deploy-pages:
     name: Deploy to GitHub Pages
     needs: [lint, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Deploy on pushes to main, or on a manual workflow_dispatch from
+    # main (useful for redeploying after editing settings/secrets
+    # without a code change).
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
