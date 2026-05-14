@@ -345,6 +345,38 @@ test.describe('cassette + tracks', () => {
   });
 });
 
+test.describe('boot sequence', () => {
+  test('first visit per session triggers the boot terminal overlay', async ({ page }) => {
+    // Visit without ?test=1 so the boot path actually fires. Use
+    // domcontentloaded so we get control before the full load event
+    // — the boot sequence runs ~1.5s, and waiting for `load` can
+    // outlast it on a fresh preview server.
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const overlay = page.locator('.boot-overlay');
+    await expect(overlay).toHaveClass(/active/);
+    await expect(page.locator('.boot-line').first()).toContainText(/signal acquired/);
+    await expect(overlay).not.toHaveClass(/active/, { timeout: 4000 });
+  });
+
+  test('boot does not re-run on reload in the same session', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Wait for the boot to complete on first load.
+    await expect(page.locator('.boot-overlay')).not.toHaveClass(/active/, { timeout: 4000 });
+    // Reload — sessionStorage retains divora:booted across reload
+    // within the same context, so the overlay should stay hidden.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(300);
+    await expect(page.locator('.boot-overlay')).not.toHaveClass(/active/);
+  });
+
+  test('?test=1 skips the boot terminal entirely', async ({ page }) => {
+    await page.goto(HOME);
+    // Give main.js time to run if it were going to add .active.
+    await page.waitForTimeout(200);
+    await expect(page.locator('.boot-overlay')).not.toHaveClass(/active/);
+  });
+});
+
 test.describe('discography sigils', () => {
   test('each disco card mounts a deterministic sigil canvas', async ({ page }) => {
     await page.goto(HOME);

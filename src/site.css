@@ -45,6 +45,123 @@ button {
   border-radius: 2px;
 }
 
+/* ─── first-boot terminal overlay ─── */
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* above the grain overlay (200) and everything else */
+  display: none;
+  background: var(--void);
+  color: var(--lilac);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 28% 8% 0;
+  overflow: hidden;
+}
+.boot-overlay.active {
+  display: block;
+}
+.boot-overlay.fading {
+  animation: boot-fade 320ms ease-out forwards;
+}
+@keyframes boot-fade {
+  to {
+    opacity: 0;
+  }
+}
+.boot-term {
+  margin: 0;
+  white-space: pre;
+  line-height: 1.7;
+}
+.boot-line {
+  opacity: 0;
+  animation: boot-line-in 220ms ease-out forwards;
+}
+.boot-line-final {
+  color: var(--mist);
+  margin-top: 8px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+@keyframes boot-line-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── hero first-boot entrance ─── */
+/* When boot.js completes the terminal sequence it adds `.first-boot`
+   to the hero. That triggers staggered fade-ins for each element
+   plus a clip-path "stroke-draw" wipe on the DIVORA wordmark. */
+.hero.first-boot .hero-eyebrow {
+  animation: hero-fade-up 540ms ease-out 50ms both;
+}
+.hero.first-boot .hero-title {
+  /* clip-path wipe — looks like the wordmark draws in from left */
+  animation:
+    hero-stroke-draw 900ms cubic-bezier(0.65, 0, 0.35, 1) 120ms both,
+    hero-title-glow 1200ms ease-out 120ms both;
+}
+.hero.first-boot .hero-tag {
+  animation: hero-fade-up 540ms ease-out 700ms both;
+}
+.hero.first-boot .hero-stage {
+  animation: hero-ring-in 1100ms ease-out 0ms both;
+}
+.hero.first-boot .hero-controls {
+  animation: hero-fade-up 540ms ease-out 900ms both;
+}
+.hero.first-boot .hero-meta {
+  animation: hero-fade-up 540ms ease-out 1100ms both;
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-stroke-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes hero-title-glow {
+  0% {
+    text-shadow: 0 0 0 rgba(124, 58, 237, 0);
+  }
+  60% {
+    text-shadow: 0 0 90px rgba(255, 77, 143, 0.6);
+  }
+  100% {
+    text-shadow: 0 0 60px rgba(124, 58, 237, 0.3);
+  }
+}
+@keyframes hero-ring-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* ─── page chrome ─── */
 .page {
   position: relative;

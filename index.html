@@ -91,6 +91,13 @@
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
+    <!-- First-visit boot overlay — JS adds .active to show it,
+         then fills .boot-term with terminal lines, then adds
+         .fading to dismiss. See src/boot.js. -->
+    <div class="boot-overlay" aria-hidden="true">
+      <pre class="boot-term"></pre>
+    </div>
+
     <div class="page">
       <!-- ─── sticky nav ─── -->
       <header class="nav">
