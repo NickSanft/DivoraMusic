@@ -337,10 +337,34 @@ test.describe('SEO meta', () => {
       'https://nick.sanft.com/music/',
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Divora/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /og\.png$/);
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', /og\.png$/);
     const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
     const parsed = JSON.parse(jsonLd);
     expect(parsed['@type']).toBe('MusicGroup');
     expect(parsed.name).toBe('Divora');
+    // Three featured releases as nested MusicAlbums.
+    expect(Array.isArray(parsed.album)).toBe(true);
+    expect(parsed.album).toHaveLength(3);
+    expect(parsed.album.map((a) => a.name)).toEqual([
+      'Ominous Augury',
+      'Origins Of The Gyre',
+      'Physiognomy',
+    ]);
+    for (const album of parsed.album) {
+      expect(album['@type']).toBe('MusicAlbum');
+      expect(album.byArtist.name).toBe('Divora');
+      expect(album.url).toMatch(/^https:\/\/divora\.bandcamp\.com\//);
+    }
+  });
+
+  test('og.png ships and serves with image content-type', async ({ request }) => {
+    // og:image meta is the production URL (nick.sanft.com/music/og.png);
+    // the file ships in public/ so on the preview server it lives at
+    // /og.png regardless of the base path.
+    const r = await request.get('/og.png');
+    expect(r.ok()).toBe(true);
+    expect(r.headers()['content-type']).toMatch(/image\/png/);
   });
 
   test('/lab has noindex robots meta', async ({ page }) => {

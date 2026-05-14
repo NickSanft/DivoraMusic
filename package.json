@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "playwright test",
-    "test:update-snapshots": "playwright test --update-snapshots"
+    "test:update-snapshots": "playwright test --update-snapshots",
+    "og:generate": "vite build && node scripts/generate-og.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",

@@ -70,8 +70,10 @@ jobs:
   lighthouse:
     name: Lighthouse (perf + a11y budget)
     runs-on: ubuntu-latest
-    # Lighthouse only on PRs — pushes to main go straight to deploy.
-    if: github.event_name == 'pull_request'
+    # Run on PRs and on manual workflow_dispatch for ad-hoc audits.
+    # Skipped on direct pushes to main so we don't block deploys on
+    # a transient lighthouse hiccup; the PR job catches regressions.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
