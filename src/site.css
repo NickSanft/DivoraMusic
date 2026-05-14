@@ -531,16 +531,45 @@ button {
 .cassette-play:active {
   transform: scale(0.95);
 }
+/* progress bar — now a real button you can click to seek */
 .cassette-bar {
-  height: 2px;
-  background: var(--line);
-  overflow: hidden;
+  position: relative;
+  height: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  /* hit area is 12px tall but the visible track is 2px */
 }
-.cassette-bar > div {
-  height: 100%;
+.cassette-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--line);
+}
+.cassette-bar-fill {
+  position: relative;
+  display: block;
+  height: 2px;
   width: 0;
   background: linear-gradient(90deg, var(--violet), var(--accent));
   transition: width 0.15s linear;
+  pointer-events: none;
+}
+.cassette-bar:hover .cassette-bar-fill,
+.cassette-bar:focus-visible .cassette-bar-fill {
+  height: 3px;
+}
+.cassette-bar:hover::before,
+.cassette-bar:focus-visible::before {
+  height: 3px;
+  margin-top: -1.5px;
 }
 .cassette-time {
   min-width: 78px;
@@ -557,6 +586,134 @@ button {
 .cassette-next:hover {
   opacity: 1;
   color: var(--mist);
+}
+
+/* volume control — mute icon with a hover-revealed slider above it.
+   Click toggles mute; the slider appears on hover/focus-within and
+   sets audio.volume. Both states persist via localStorage. */
+.cassette-volume {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.cassette-mute {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--lilac);
+  opacity: 0.7;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
+}
+.cassette-mute:hover {
+  opacity: 1;
+  color: var(--mist);
+}
+.cassette-mute::before {
+  /* speaker body */
+  content: '';
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  clip-path: polygon(0% 35%, 45% 35%, 100% 0%, 100% 100%, 45% 65%, 0% 65%);
+}
+.cassette-mute::after {
+  /* sound waves; hidden when muted */
+  content: '';
+  position: absolute;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-color: transparent currentColor currentColor transparent;
+  border-radius: 50%;
+  transform: rotate(-45deg);
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+.cassette-mute[aria-pressed='true']::after {
+  opacity: 0;
+}
+.cassette-mute[aria-pressed='true']::before {
+  opacity: 0.5;
+}
+/* the slash for the muted state */
+.cassette-mute[aria-pressed='true'] {
+  color: var(--lilac);
+}
+.cassette-mute[aria-pressed='true'] > .mute-slash {
+  display: block;
+}
+.mute-slash {
+  display: none;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 1.5px;
+  background: var(--ember);
+  transform: rotate(-30deg);
+  border-radius: 2px;
+}
+
+.volume-slider-wrap {
+  position: absolute;
+  bottom: 100%;
+  right: -8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: rgba(10, 4, 20, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  transform: translateY(4px);
+  z-index: 4;
+}
+.cassette-volume:hover .volume-slider-wrap,
+.cassette-volume:focus-within .volume-slider-wrap {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 84px;
+  height: 4px;
+  background: var(--line);
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--violet-2);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(124, 58, 237, 0.6);
+}
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--violet-2);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(124, 58, 237, 0.6);
 }
 
 /* eject + insert animations: cassette translates within the slot.

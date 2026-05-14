@@ -21,7 +21,11 @@ import { TRACKS, findTrackIndex } from './tracks.js';
 const VIZ_KEY = 'divora:viz';
 const TRACK_KEY = 'divora:track';
 const AUTO_KEY = 'divora:auto';
+const VOLUME_KEY = 'divora:volume';
+const MUTE_KEY = 'divora:mute';
 const DEFAULT_VIZ = 'reliquary';
+const DEFAULT_VOLUME = 0.9;
+const SEEK_STEP_SEC = 10;
 
 const VISUALIZERS = {
   reliquary: (el, getSpec) => mountPrismStage(el, getSpec, { bars: 64 }),
@@ -84,6 +88,36 @@ function saveAutoAdvance(v) {
     // ignore
   }
 }
+function loadVolume() {
+  try {
+    const v = Number(globalThis.localStorage?.getItem(VOLUME_KEY));
+    if (Number.isFinite(v) && v >= 0 && v <= 1) return v;
+  } catch {
+    // ignore
+  }
+  return DEFAULT_VOLUME;
+}
+function saveVolume(v) {
+  try {
+    globalThis.localStorage?.setItem(VOLUME_KEY, String(v));
+  } catch {
+    // ignore
+  }
+}
+function loadMute() {
+  try {
+    return globalThis.localStorage?.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function saveMute(v) {
+  try {
+    globalThis.localStorage?.setItem(MUTE_KEY, v ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
 
 export function initHero() {
   const stage = document.querySelector('.hero-stage > div');
@@ -111,6 +145,14 @@ export function initHero() {
   }
 
   const initialIndex = pickInitialTrack();
+  let volume = loadVolume();
+  let muted = loadMute();
+
+  const applyVolumeToAudio = () => {
+    if (!audio) return;
+    audio.volume = volume;
+    audio.muted = muted;
+  };
 
   const cassette = initCassette({
     initialIndex,
@@ -138,8 +180,27 @@ export function initHero() {
     onNext() {
       cassette.next();
     },
+    onSeek(ratio) {
+      if (!audio) ensureAudio();
+      const d = audio.duration || TRACKS[cassette.getIndex()].duration;
+      if (Number.isFinite(d) && d > 0) {
+        audio.currentTime = Math.max(0, Math.min(d, ratio * d));
+        cassette.setProgress(audio.currentTime, d);
+      }
+    },
+    onVolume(v) {
+      volume = v;
+      saveVolume(volume);
+      applyVolumeToAudio();
+    },
+    onMute(m) {
+      muted = m;
+      saveMute(muted);
+      applyVolumeToAudio();
+    },
   });
   if (!cassette) return () => {};
+  cassette.setVolumeUI(volume, muted);
 
   // — drive the cassette's reel energy + progress every frame —
   let pumpRaf = 0;
@@ -170,6 +231,7 @@ export function initHero() {
         cassette.swapTo(next);
       }
     });
+    applyVolumeToAudio();
 
     try {
       const Ctx = globalThis.AudioContext || globalThis.webkitAudioContext;
@@ -238,14 +300,62 @@ export function initHero() {
   };
   autoToggle?.addEventListener('click', onAutoToggle);
 
-  // — keyboard nav: ← / → cycle tracks when the hero is in view —
+  // — keyboard shortcuts —
+  //   Space  play / pause
+  //   F      next track
+  //   R      previous track (rewind in cassette vernacular)
+  //   J / L  seek -10s / +10s
+  //   M      toggle mute
+  //   (←/→ stay free for the Konami code in lab-hint.js)
   const onKey = (e) => {
     if (e.target instanceof HTMLElement && e.target.matches('input, textarea, [contenteditable]')) {
       return;
     }
-    if (e.key === 'ArrowRight') cassette.next();
-    else if (e.key === 'ArrowLeft') cassette.prev();
+    // Repeat events should be honoured for seeking (hold L to scrub
+    // forward) but not for one-shot toggles. We only filter out repeat
+    // for play/pause + mute.
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    switch (key) {
+      case ' ':
+      case 'Spacebar': // legacy Edge
+        if (e.repeat) return;
+        e.preventDefault(); // stop the page scrolling on Space
+        onCassettePlayPause();
+        return;
+      case 'f':
+        cassette.next();
+        return;
+      case 'r':
+        cassette.prev();
+        return;
+      case 'j':
+        seekBy(-SEEK_STEP_SEC);
+        return;
+      case 'l':
+        seekBy(SEEK_STEP_SEC);
+        return;
+      case 'm':
+        if (e.repeat) return;
+        toggleMute();
+        return;
+      default:
+        return;
+    }
   };
+  const onCassettePlayPause = () => togglePlay().catch(() => {});
+  function seekBy(deltaSec) {
+    if (!audio) return; // no-op if user hasn't started playback yet
+    const d = audio.duration || TRACKS[cassette.getIndex()].duration;
+    if (!Number.isFinite(d) || d <= 0) return;
+    audio.currentTime = Math.max(0, Math.min(d, audio.currentTime + deltaSec));
+    cassette.setProgress(audio.currentTime, d);
+  }
+  function toggleMute() {
+    muted = !muted;
+    saveMute(muted);
+    applyVolumeToAudio();
+    cassette.setVolumeUI(volume, muted);
+  }
   window.addEventListener('keydown', onKey);
 
   return () => {

@@ -40,7 +40,15 @@ function fmtTime(sec) {
   return `${String((s / 60) | 0).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } = {}) {
+export function initCassette({
+  initialIndex = 0,
+  onSwap,
+  onPlayPause,
+  onNext,
+  onSeek,
+  onVolume,
+  onMute,
+} = {}) {
   const tape = document.querySelector('.cassette');
   const lblTitle = tape?.querySelector('.cassette-label .ttl-text');
   const lblSub = tape?.querySelector('.cassette-label .sub');
@@ -48,9 +56,12 @@ export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } =
   // .tape-player) so they don't animate with the eject/insert.
   const controls = document.querySelector('.deck-controls');
   const timeEl = controls?.querySelector('.cassette-time');
-  const barEl = controls?.querySelector('.cassette-bar > div');
+  const barBtn = controls?.querySelector('.cassette-bar');
+  const barEl = controls?.querySelector('.cassette-bar-fill');
   const playBtn = controls?.querySelector('.cassette-play');
   const nextBtn = controls?.querySelector('.cassette-next');
+  const muteBtn = controls?.querySelector('.cassette-mute');
+  const volumeInput = controls?.querySelector('.volume-slider');
   const trackSwitcher = document.querySelector('.track-switcher');
   if (!tape || !lblTitle || !playBtn || !nextBtn) return null;
 
@@ -159,6 +170,40 @@ export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } =
   playBtn.addEventListener('click', () => onPlayPause?.());
   nextBtn.addEventListener('click', () => onNext?.());
 
+  // Click-to-seek on the progress bar. We translate the click's
+  // x-position within the bar to a 0..1 ratio and hand it to the
+  // host, which knows the audio element.
+  const onBarClick = (e) => {
+    if (!barBtn) return;
+    const rect = barBtn.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    onSeek?.(ratio);
+  };
+  barBtn?.addEventListener('click', onBarClick);
+
+  // Mute toggle. Volume slider sends continuous updates to the host;
+  // the host stores it and applies it to the live audio element.
+  const onMuteClick = () => {
+    const next = muteBtn.getAttribute('aria-pressed') !== 'true';
+    muteBtn.setAttribute('aria-pressed', String(next));
+    muteBtn.setAttribute('aria-label', next ? 'Unmute' : 'Mute');
+    onMute?.(next);
+  };
+  muteBtn?.addEventListener('click', onMuteClick);
+
+  const onVolumeInput = (e) => {
+    const v = Number(e.target.value) / 100;
+    onVolume?.(v);
+    // Tapping the slider while muted implicitly unmutes if the user
+    // chose any non-zero level.
+    if (v > 0 && muteBtn?.getAttribute('aria-pressed') === 'true') {
+      muteBtn.setAttribute('aria-pressed', 'false');
+      muteBtn.setAttribute('aria-label', 'Mute');
+      onMute?.(false);
+    }
+  };
+  volumeInput?.addEventListener('input', onVolumeInput);
+
   const onSwitcherClick = (e) => {
     const b = e.target.closest('button[data-index]');
     if (!b) return;
@@ -234,8 +279,17 @@ export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } =
     },
     setProgress(currentSec, durationSec) {
       const d = durationSec || TRACKS[currentIndex].duration;
-      if (barEl) barEl.style.width = `${Math.min(100, (currentSec / d) * 100)}%`;
+      const pct = Math.min(100, (currentSec / d) * 100);
+      if (barEl) barEl.style.width = `${pct}%`;
+      if (barBtn) barBtn.setAttribute('aria-valuenow', String(Math.round(pct)));
       timeEl.textContent = `${fmtTime(currentSec)} / ${fmtTime(d)}`;
+    },
+    setVolumeUI(level, muted) {
+      if (volumeInput) volumeInput.value = String(Math.round(level * 100));
+      if (muteBtn) {
+        muteBtn.setAttribute('aria-pressed', String(!!muted));
+        muteBtn.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+      }
     },
     // Audio energy 0..1 — drives reel speed.
     pumpEnergy(v) {
@@ -246,6 +300,9 @@ export function initCassette({ initialIndex = 0, onSwap, onPlayPause, onNext } =
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisibility);
       trackSwitcher?.removeEventListener('click', onSwitcherClick);
+      barBtn?.removeEventListener('click', onBarClick);
+      muteBtn?.removeEventListener('click', onMuteClick);
+      volumeInput?.removeEventListener('input', onVolumeInput);
     },
   };
 }

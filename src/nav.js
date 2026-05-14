@@ -32,6 +32,7 @@ export function initNav() {
 
   const sections = SECTION_IDS.map((id) => document.getElementById(id)).filter(Boolean);
   let spy;
+  let lastSpyId = '';
   if (sections.length && typeof IntersectionObserver !== 'undefined') {
     spy = new IntersectionObserver(
       (entries) => {
@@ -40,6 +41,15 @@ export function initNav() {
           for (const a of navLinks) a.classList.remove('active');
           const a = linksById.get(e.target.id);
           if (a) a.classList.add('active');
+          // Keep the URL hash in sync with the visible section so the
+          // current view is shareable. Hero collapses to a bare `/`
+          // so the URL doesn't show `#hero` at the top of the page.
+          if (e.target.id !== lastSpyId) {
+            lastSpyId = e.target.id;
+            const targetHash = e.target.id === 'hero' ? '' : `#${e.target.id}`;
+            const next = `${location.pathname}${location.search}${targetHash}`;
+            history.replaceState(null, '', next);
+          }
         }
       },
       { rootMargin: '-40% 0px -55% 0px' },

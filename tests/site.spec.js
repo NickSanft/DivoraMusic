@@ -227,15 +227,63 @@ test.describe('cassette + tracks', () => {
     expect(accent).toBe('#ffb86b');
   });
 
-  test('arrow keys cycle tracks (← prev, → next)', async ({ page }) => {
+  test('F / R keyboard shortcuts cycle tracks (F next, R rewind)', async ({ page }) => {
     await page.goto(HOME);
-    await page.keyboard.press('ArrowRight');
+    // ←/→ are intentionally NOT bound so the Konami sequence still
+    // works while the tape is queued. F = next, R = prev.
+    await page.keyboard.press('KeyF');
     await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'corruption-can-be-fun');
-    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('KeyR');
     await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'gyrefolk-docks');
-    // wrap-around: previous from track 1 = last track
-    await page.keyboard.press('ArrowLeft');
+    // wrap-around: rewind from track 1 = last track
+    await page.keyboard.press('KeyR');
     await expect(page.locator('.cassette')).toHaveAttribute('data-track', 'origins-of-the-gyre');
+  });
+
+  test('progress bar is a click-to-seek slider', async ({ page }) => {
+    await page.goto(HOME);
+    const bar = page.locator('.cassette-bar');
+    await expect(bar).toBeVisible();
+    await expect(bar).toHaveAttribute('role', 'slider');
+    await expect(bar).toHaveAttribute('aria-valuemin', '0');
+    await expect(bar).toHaveAttribute('aria-valuemax', '100');
+    // Clicking should register without throwing. Real-audio playback
+    // testing (verify currentTime advances) belongs to manual QA —
+    // headless chromium won't autoplay without a user gesture.
+    await bar.click({ position: { x: 40, y: 6 } });
+  });
+
+  test('mute toggle persists in localStorage', async ({ page }) => {
+    await page.goto(HOME);
+    const mute = page.locator('.cassette-mute');
+    await expect(mute).toHaveAttribute('aria-pressed', 'false');
+    await mute.click();
+    await expect(mute).toHaveAttribute('aria-pressed', 'true');
+    const stored = await page.evaluate(() => globalThis.localStorage?.getItem('divora:mute'));
+    expect(stored).toBe('1');
+    await page.reload();
+    await expect(page.locator('.cassette-mute')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('M keyboard shortcut toggles mute', async ({ page }) => {
+    await page.goto(HOME);
+    await expect(page.locator('.cassette-mute')).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('KeyM');
+    await expect(page.locator('.cassette-mute')).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('KeyM');
+    await expect(page.locator('.cassette-mute')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('volume slider updates localStorage', async ({ page }) => {
+    await page.goto(HOME);
+    const slider = page.locator('.volume-slider');
+    // Set via JS to avoid hover-slot timing.
+    await slider.evaluate((el) => {
+      el.value = '40';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const stored = await page.evaluate(() => globalThis.localStorage?.getItem('divora:volume'));
+    expect(Number(stored)).toBeCloseTo(0.4, 1);
   });
 
   test('track choice persists across reload', async ({ page }) => {
@@ -261,6 +309,23 @@ test.describe('cassette + tracks', () => {
 
     await page.reload();
     await expect(page.locator('.auto-advance-toggle')).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+test.describe('scroll-spy URL hash', () => {
+  test('scrolling to a section updates the URL hash', async ({ page }) => {
+    await page.goto(HOME);
+    await page.evaluate(() => {
+      const el = document.getElementById('about');
+      window.scrollTo({ top: el.offsetTop + 200, behavior: 'instant' });
+    });
+    await expect(page).toHaveURL(/#about$/);
+
+    await page.evaluate(() => {
+      const el = document.getElementById('discography');
+      window.scrollTo({ top: el.offsetTop + 200, behavior: 'instant' });
+    });
+    await expect(page).toHaveURL(/#discography$/);
   });
 });
 

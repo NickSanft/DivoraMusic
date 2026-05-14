@@ -128,7 +128,17 @@
                   <polygon points="0,0 0,12 10,6" fill="currentColor" />
                 </svg>
               </button>
-              <span class="cassette-bar" aria-hidden="true"><div></div></span>
+              <button
+                class="cassette-bar"
+                type="button"
+                role="slider"
+                aria-label="Track progress (click to seek)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+              >
+                <span class="cassette-bar-fill"></span>
+              </button>
               <span class="cassette-time">00:00 / 02:34</span>
               <button class="cassette-next" type="button" aria-label="Next track">
                 <svg
@@ -142,6 +152,22 @@
                   <rect x="9" y="0" width="2" height="12" />
                 </svg>
               </button>
+              <div class="cassette-volume">
+                <button class="cassette-mute" type="button" aria-label="Mute" aria-pressed="false">
+                  <span class="mute-slash" aria-hidden="true"></span>
+                </button>
+                <div class="volume-slider-wrap" aria-hidden="true">
+                  <input
+                    class="volume-slider"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value="100"
+                    aria-label="Volume"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
