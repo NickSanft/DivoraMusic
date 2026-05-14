@@ -145,19 +145,28 @@
 
         <div class="hero-controls">
           <div class="tape-player" aria-label="Now playing">
-            <div class="deck-slot" aria-hidden="true">
-              <div class="cassette" data-track="gyrefolk-docks">
-                <div class="cassette-reels">
+            <div class="deck-slot">
+              <div class="cassette" data-track="gyrefolk-docks" data-side="A">
+                <div class="cassette-reels" aria-hidden="true">
                   <div class="reel left"></div>
                   <div class="reel right"></div>
                 </div>
                 <div class="cassette-label">
                   <span class="cassette-brand">DIVORA</span>
+                  <span class="cassette-side">SIDE A</span>
                   <span class="ttl"><span class="ttl-text">Gyrefolk Docks</span></span>
                   <span class="sub">OMINOUS · 01</span>
                 </div>
-                <div class="cassette-window"></div>
+                <div class="cassette-window" aria-hidden="true"></div>
               </div>
+              <button
+                class="cassette-flip"
+                type="button"
+                aria-label="Flip cassette to the other side"
+                title="Flip to B-side"
+              >
+                <span aria-hidden="true">↺ FLIP</span>
+              </button>
             </div>
             <div class="deck-controls">
               <button class="cassette-play" type="button" aria-label="Play preview">
@@ -398,7 +407,8 @@
           <div class="s-label reveal">III · Discography</div>
           <h2 class="s-title reveal">Two folios.<br />One signal.</h2>
           <div class="disco-grid">
-            <div class="disco-item reveal">
+            <div class="disco-item reveal" data-album-id="1491704455">
+              <canvas class="disco-sigil" aria-hidden="true"></canvas>
               <span class="disco-num">FOL. I</span>
               <h3>Origins Of The Gyre</h3>
               <span class="yr">MMXXV · 2025</span>
@@ -409,7 +419,8 @@
                 loading="lazy"
               ></iframe>
             </div>
-            <div class="disco-item reveal" style="transition-delay: 80ms">
+            <div class="disco-item reveal" style="transition-delay: 80ms" data-album-id="95361347">
+              <canvas class="disco-sigil" aria-hidden="true"></canvas>
               <span class="disco-num">FOL. II</span>
               <h3>Physiognomy</h3>
               <span class="yr">MMXXI · 2021</span>

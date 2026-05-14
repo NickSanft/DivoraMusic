@@ -5,10 +5,11 @@
 // animation. Audio playback + analyser graph belong to hero.js;
 // this module is purely presentational and is told what to show.
 
-import { TRACKS, SOUNDS } from './tracks.js';
+import { TRACKS, BLANK_SIDE, SOUNDS, findAlbumMate } from './tracks.js';
 
 const EJECT_MS = 500;
 const INSERT_MS = 600;
+const FLIP_HALF_MS = 350;
 const TYPE_MS_PER_CHAR = 22;
 
 const PREFERS_REDUCED =
@@ -48,10 +49,12 @@ export function initCassette({
   onSeek,
   onVolume,
   onMute,
+  onFlipAudio,
 } = {}) {
   const tape = document.querySelector('.cassette');
   const lblTitle = tape?.querySelector('.cassette-label .ttl-text');
   const lblSub = tape?.querySelector('.cassette-label .sub');
+  const sideEl = tape?.querySelector('.cassette-side');
   // Controls live outside the cassette now (in .deck-controls under
   // .tape-player) so they don't animate with the eject/insert.
   const controls = document.querySelector('.deck-controls');
@@ -62,6 +65,7 @@ export function initCassette({
   const nextBtn = controls?.querySelector('.cassette-next');
   const muteBtn = controls?.querySelector('.cassette-mute');
   const volumeInput = controls?.querySelector('.volume-slider');
+  const flipBtn = document.querySelector('.cassette-flip');
   const trackSwitcher = document.querySelector('.track-switcher');
   if (!tape || !lblTitle || !playBtn || !nextBtn) return null;
 
@@ -88,9 +92,40 @@ export function initCassette({
   function applyTrackToTape(track) {
     tape.style.setProperty('--accent', track.accent);
     tape.setAttribute('data-track', track.id);
-    lblSub.textContent = `${track.albumShort} · ${track.number}`;
+    tape.setAttribute('data-side', track.blank ? 'blank' : track.side);
+    if (sideEl) sideEl.textContent = track.blank ? '— SIDE B —' : `SIDE ${track.side}`;
+    if (track.blank) {
+      lblSub.textContent = 'NO RECORDING';
+    } else {
+      lblSub.textContent = `${track.albumShort} · ${track.number}`;
+    }
     timeEl.textContent = `00:00 / ${fmtTime(track.duration)}`;
     if (barEl) barEl.style.width = '0%';
+    // Hide / disable the flip button if this side has no mate.
+    if (flipBtn) {
+      const realTrack = !track.blank ? track : findRealTrackFromBlank();
+      const mate = realTrack ? findAlbumMate(realTrack.id) : null;
+      // We DO want the button enabled on tracks WITHOUT a mate (so
+      // they can still flip to a blank side and back) — only disable
+      // it when there's literally nothing on either side (impossible
+      // in practice, but defensive).
+      flipBtn.disabled = false;
+      flipBtn.setAttribute(
+        'aria-label',
+        track.blank
+          ? 'Flip back to the recorded side'
+          : mate
+            ? `Flip to side B: ${mate.title}`
+            : 'Flip to the blank side',
+      );
+    }
+  }
+
+  // When we're on a blank side, the "real" track is whoever's still
+  // loaded in audio (preserved in lastRealIndex).
+  let lastRealIndex = initialIndex;
+  function findRealTrackFromBlank() {
+    return TRACKS[lastRealIndex];
   }
 
   function renderTrackSwitcher() {
@@ -217,9 +252,18 @@ export function initCassette({
   async function swapTo(nextIndex) {
     if (swapInFlight || nextIndex === currentIndex) return;
     if (nextIndex < 0 || nextIndex >= TRACKS.length) return;
+
+    const fromTrack = TRACKS[currentIndex];
+    const toTrack = TRACKS[nextIndex];
+
+    // Same album → flip rather than eject (it's the same tape, just
+    // turning it over). Different album → full eject/insert.
+    if (fromTrack && toTrack.albumId === fromTrack.albumId) {
+      return flipToTrack(nextIndex);
+    }
+
     swapInFlight = true;
     const fromIndex = currentIndex;
-    const toTrack = TRACKS[nextIndex];
 
     // Notify the host so it can pause audio + kick off a visualizer
     // glitch synchronized with the eject. host returns true if it
@@ -254,10 +298,83 @@ export function initCassette({
 
     // typewrite-in the new title
     await typewriteTitle(toTrack.title);
+    lastRealIndex = nextIndex;
     swapInFlight = false;
 
     if (wantResume) onPlayPause?.({ forcePlay: true });
   }
+
+  // Flip the cassette in place — used when switching to the album-mate
+  // (same tape, different side) or to the blank B-side.
+  async function flipToTrack(nextIndex) {
+    if (swapInFlight) return;
+    swapInFlight = true;
+    const toTrack = TRACKS[nextIndex];
+    await runFlip(toTrack, { audioSwapToIndex: nextIndex });
+    currentIndex = nextIndex;
+    lastRealIndex = nextIndex;
+    reflectSwitcher();
+    swapInFlight = false;
+  }
+
+  // Flip to the blank side (no recording).
+  async function flipToBlank() {
+    if (swapInFlight) return;
+    swapInFlight = true;
+    await runFlip(BLANK_SIDE, { audioSwapToIndex: null });
+    // currentIndex stays the same — the real track is still loaded;
+    // we just show the empty side of the tape.
+    swapInFlight = false;
+  }
+
+  // Flip back from blank to the recorded side.
+  async function flipBackFromBlank() {
+    if (swapInFlight) return;
+    swapInFlight = true;
+    await runFlip(TRACKS[lastRealIndex], { audioSwapToIndex: null });
+    swapInFlight = false;
+  }
+
+  async function runFlip(toTrack, { audioSwapToIndex }) {
+    if (SKIP_ANIM) {
+      applyTrackToTape(toTrack);
+      if (audioSwapToIndex !== null) await onFlipAudio?.(audioSwapToIndex);
+      await typewriteTitle(toTrack.title);
+      return;
+    }
+    tape.classList.remove('flipping-in', 'flipping-out');
+    void tape.offsetWidth;
+    tape.classList.add('flipping-out');
+    await sleep(FLIP_HALF_MS);
+    // Cassette is perpendicular to the viewer — swap content invisibly.
+    applyTrackToTape(toTrack);
+    if (audioSwapToIndex !== null) await onFlipAudio?.(audioSwapToIndex);
+    tape.classList.remove('flipping-out');
+    void tape.offsetWidth;
+    tape.classList.add('flipping-in');
+    await sleep(FLIP_HALF_MS);
+    tape.classList.remove('flipping-in');
+    await typewriteTitle(toTrack.title);
+  }
+
+  // Flip button: figure out where we are and where to go.
+  const onFlipClick = async () => {
+    if (swapInFlight) return;
+    const current = TRACKS[currentIndex];
+    const isBlankShowing = tape.getAttribute('data-side') === 'blank';
+    if (isBlankShowing) {
+      await flipBackFromBlank();
+      return;
+    }
+    const mate = findAlbumMate(current.id);
+    if (mate) {
+      const mateIndex = TRACKS.findIndex((t) => t.id === mate.id);
+      await flipToTrack(mateIndex);
+    } else {
+      await flipToBlank();
+    }
+  };
+  flipBtn?.addEventListener('click', onFlipClick);
 
   // — initial paint —
   applyTrackToTape(TRACKS[currentIndex]);
@@ -303,6 +420,7 @@ export function initCassette({
       barBtn?.removeEventListener('click', onBarClick);
       muteBtn?.removeEventListener('click', onMuteClick);
       volumeInput?.removeEventListener('input', onVolumeInput);
+      flipBtn?.removeEventListener('click', onFlipClick);
     },
   };
 }

@@ -188,6 +188,25 @@ export function initHero() {
         cassette.setProgress(audio.currentTime, d);
       }
     },
+    onFlipAudio(toIndex) {
+      // Cassette is mid-flip and asking for the new audio source.
+      // toIndex is null when flipping to the blank B-side (no track
+      // change required — same recording stays loaded, the visible
+      // side is just "showing nothing").
+      if (toIndex === null) return;
+      const wasPlaying = audio && !audio.paused;
+      if (audio) {
+        audio.pause();
+        audio.src = TRACKS[toIndex].file;
+        audio.load();
+      }
+      saveTrackChoice(TRACKS[toIndex].id);
+      if (wasPlaying && audio) {
+        // Best-effort resume — the ctx is already unlocked since we
+        // got here from a user gesture earlier.
+        audio.play().catch(() => {});
+      }
+    },
     onVolume(v) {
       volume = v;
       saveVolume(volume);

@@ -274,6 +274,39 @@ test.describe('cassette + tracks', () => {
     await expect(page.locator('.cassette-mute')).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('flip button cycles between A-side and B-side of the same album', async ({ page }) => {
+    await page.goto(HOME);
+    const tape = page.locator('.cassette');
+    await expect(tape).toHaveAttribute('data-track', 'gyrefolk-docks');
+    await expect(tape).toHaveAttribute('data-side', 'A');
+    // Gyrefolk Docks lives on Ominous Augury, side A. The B-side is
+    // Corruption Can Be Fun — same album. Flipping should land us
+    // there with the cassette now reading "SIDE B".
+    await page.click('.cassette-flip');
+    await expect(tape).toHaveAttribute('data-track', 'corruption-can-be-fun');
+    await expect(tape).toHaveAttribute('data-side', 'B');
+    // Flip back.
+    await page.click('.cassette-flip');
+    await expect(tape).toHaveAttribute('data-track', 'gyrefolk-docks');
+    await expect(tape).toHaveAttribute('data-side', 'A');
+  });
+
+  test('flipping a single (Origins) reveals a blank B-side', async ({ page }) => {
+    await page.goto(HOME);
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    const tape = page.locator('.cassette');
+    await expect(tape).toHaveAttribute('data-track', 'origins-of-the-gyre');
+    // Origins is a single — no album-mate. Flipping shows the blank
+    // side; the track ID stays the same because no audio is loaded
+    // for a non-existent B-side.
+    await page.click('.cassette-flip');
+    await expect(tape).toHaveAttribute('data-side', 'blank');
+    await expect(tape.locator('.cassette-label .sub')).toHaveText(/NO RECORDING/);
+    // Flip back to side A.
+    await page.click('.cassette-flip');
+    await expect(tape).toHaveAttribute('data-side', 'A');
+  });
+
   test('volume slider updates localStorage', async ({ page }) => {
     await page.goto(HOME);
     const slider = page.locator('.volume-slider');
@@ -309,6 +342,23 @@ test.describe('cassette + tracks', () => {
 
     await page.reload();
     await expect(page.locator('.auto-advance-toggle')).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+test.describe('discography sigils', () => {
+  test('each disco card mounts a deterministic sigil canvas', async ({ page }) => {
+    await page.goto(HOME);
+    // Two featured folios → two sigils.
+    const sigils = page.locator('.disco-item .disco-sigil');
+    await expect(sigils).toHaveCount(2);
+    // Both canvases should have non-zero painted area (lhci would
+    // otherwise mark them as "decoration-only"). We sample a pixel
+    // away from the center via toDataURL → byte length comparison.
+    const lens = await sigils.evaluateAll((els) =>
+      els.map((c) => (c.toDataURL ? c.toDataURL('image/png').length : 0)),
+    );
+    expect(lens.every((n) => n > 200)).toBe(true);
+    expect(lens[0]).not.toBe(lens[1]); // different albums → different sigils
   });
 });
 
