@@ -961,13 +961,40 @@ section.s {
   overflow: hidden;
   background: linear-gradient(140deg, var(--bg-2), var(--ink));
 }
-.about-photo .clip img {
+/* cat-shift — wraps the photo so the cursor-parallax translate doesn't
+   collide with the filter/blend stack on the img itself */
+.about-photo .clip .cat-shift {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.45s ease-out;
+  will-change: transform;
+}
+.about-photo .clip .cat-shift picture,
+.about-photo .clip .cat-shift img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.about-photo .clip img {
   filter: grayscale(1) brightness(0.95) contrast(1.15) sepia(0.15) hue-rotate(225deg) saturate(2.2);
   mix-blend-mode: screen;
   opacity: 0.78;
+}
+/* idle blink — JS toggles `.blink` for ~180ms every 8–14s. Disabled
+   under prefers-reduced-motion and the ?test=1 deterministic flag. */
+.about-photo .clip .cat-shift.blink img {
+  animation: cat-blink 180ms ease-in-out;
+}
+@keyframes cat-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.04);
+  }
 }
 .about-photo .leak {
   position: absolute;

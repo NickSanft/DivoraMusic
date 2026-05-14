@@ -9,6 +9,7 @@ import { initReveal } from './reveal.js';
 import { initHero } from './hero.js';
 import { initContact } from './contact.js';
 import { initLabHint } from './lab-hint.js';
+import { initCat } from './cat.js';
 
 function ready(fn) {
   if (document.readyState === 'loading') {
@@ -24,4 +25,5 @@ ready(() => {
   initHero();
   initContact();
   initLabHint();
+  initCat();
 });

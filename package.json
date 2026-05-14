@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "test": "playwright test",
     "test:update-snapshots": "playwright test --update-snapshots",
-    "og:generate": "vite build && node scripts/generate-og.js"
+    "og:generate": "vite build && node scripts/generate-og.js",
+    "images:optimize": "node scripts/optimize-images.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
@@ -32,6 +33,7 @@
     "eslint": "^9.16.0",
     "globals": "^15.13.0",
     "prettier": "^3.4.2",
+    "sharp": "^0.34.5",
     "vite": "^6.0.3"
   },
   "engines": {
