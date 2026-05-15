@@ -22,6 +22,7 @@ import { initContact } from './contact.js';
 import { initLabHint } from './lab-hint.js';
 import { initCat } from './cat.js';
 import { initDiscoSigils } from './disco-sigils.js';
+import { initLazyIframes } from './lazy-iframes.js';
 import { initBoot } from './boot.js';
 
 function ready(fn) {
@@ -40,6 +41,7 @@ ready(() => {
   initLabHint();
   initCat();
   initDiscoSigils();
+  initLazyIframes();
   // Boot last so all the other modules' state is in place before
   // the entrance choreography references them.
   initBoot();

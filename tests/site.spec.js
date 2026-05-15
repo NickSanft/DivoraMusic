@@ -345,6 +345,77 @@ test.describe('cassette + tracks', () => {
   });
 });
 
+test.describe('lazy-loaded Bandcamp iframes', () => {
+  test('iframes start without a src and load when scrolled near', async ({ page }) => {
+    await page.goto(HOME);
+    // On initial paint, the Section II iframe is below the fold and
+    // has only data-src (no src yet).
+    const latestFrame = page.locator('.latest-embed iframe');
+    const initialSrc = await latestFrame.getAttribute('src');
+    const initialDataSrc = await latestFrame.getAttribute('data-src');
+    // Either src is empty/null, or data-src is set — both indicate
+    // we haven't loaded yet. Section II's iframe is near top so it
+    // might fall inside the IO rootMargin; assert ONE of the disco
+    // iframes (Section III) is still dormant.
+    expect(initialSrc || initialDataSrc).toBeTruthy();
+    const discoFrames = page.locator('.disco-item iframe');
+    const dataSrcs = await discoFrames.evaluateAll((els) =>
+      els.map((e) => e.getAttribute('data-src')),
+    );
+    // Before scrolling, disco frames should still have data-src set.
+    expect(dataSrcs.some((s) => s)).toBe(true);
+    // Scroll to discography — disco frames should now have src and
+    // no longer have data-src.
+    await page.locator('#discography').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(150);
+    const dataSrcsAfter = await discoFrames.evaluateAll((els) =>
+      els.map((e) => e.getAttribute('data-src')),
+    );
+    expect(dataSrcsAfter.every((s) => !s)).toBe(true);
+  });
+});
+
+test.describe('persistent mini-player', () => {
+  test('hidden until you scroll past the hero', async ({ page }) => {
+    await page.goto(HOME);
+    const mini = page.locator('.mini-player');
+    await expect(mini).not.toHaveClass(/visible/);
+    // Scroll well past the hero.
+    await page.evaluate(() => {
+      const el = document.getElementById('latest');
+      window.scrollTo({ top: el.offsetTop + 200, behavior: 'instant' });
+    });
+    await expect(mini).toHaveClass(/visible/);
+  });
+
+  test('jump button scrolls back to the hero', async ({ page }) => {
+    await page.goto(HOME);
+    await page.evaluate(() => {
+      const el = document.getElementById('contact');
+      window.scrollTo({ top: el.offsetTop, behavior: 'instant' });
+    });
+    const mini = page.locator('.mini-player');
+    await expect(mini).toHaveClass(/visible/);
+    const startY = await page.evaluate(() => window.scrollY);
+    expect(startY).toBeGreaterThan(1000);
+    // Trigger the jump. Tap directly via JS to bypass the slide-in
+    // animation "not stable" race that .click() retries on.
+    await page.evaluate(() => document.querySelector('.mini-jump').click());
+    // We don't insist on completing smooth-scroll within a tight
+    // bound — just verify it's clearly moving toward the top.
+    await page.waitForFunction((start) => window.scrollY < start - 500, startY, { timeout: 6000 });
+  });
+
+  test('mini-player title updates when the track changes', async ({ page }) => {
+    await page.goto(HOME);
+    await page.evaluate(() => window.scrollTo(0, 2000));
+    await expect(page.locator('.mini-title')).toHaveText('Gyrefolk Docks');
+    // Switch to Origins via the track switcher (eject/insert path).
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    await expect(page.locator('.mini-title')).toHaveText('Origins Of The Gyre');
+  });
+});
+
 test.describe('boot sequence', () => {
   test('first visit per session triggers the boot terminal overlay', async ({ page }) => {
     // Visit without ?test=1 so the boot path actually fires. Use

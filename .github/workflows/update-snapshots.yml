@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
 
+# Node 24 runtime for JS-based actions (silences the deprecation
+# warning that fires every run on Node 20).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   update:
     runs-on: ubuntu-latest

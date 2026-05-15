@@ -17,6 +17,12 @@ concurrency:
 permissions:
   contents: read
 
+# Opt the JS-based actions (checkout/setup-node/cache/etc.) into the
+# Node.js 24 runtime. Removes the deprecation warning emitted by
+# Node 20 on every run; flag goes away once Node 24 becomes default.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint:
     name: Lint + format

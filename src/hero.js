@@ -16,6 +16,7 @@
 import { mountPrismStage, createSimulatedSpectrum, createAnalyserSpectrum } from './visualizer.js';
 import { mountLinearBars, mountParticlePrism, mountHexlattice } from './lab-experiments.js';
 import { initCassette } from './cassette.js';
+import { initMiniPlayer } from './mini-player.js';
 import { TRACKS, findTrackIndex } from './tracks.js';
 
 const VIZ_KEY = 'divora:viz';
@@ -154,6 +155,12 @@ export function initHero() {
     audio.muted = muted;
   };
 
+  // Mini-player surfaces when the hero scrolls out of view.
+  const mini = initMiniPlayer({
+    onPlayPause: () => togglePlay().catch(() => {}),
+  });
+  mini?.setTrack(TRACKS[initialIndex]);
+
   const cassette = initCassette({
     initialIndex,
     async onSwap({ toIndex }) {
@@ -170,6 +177,7 @@ export function initHero() {
         audio.load();
       }
       saveTrackChoice(TRACKS[toIndex].id);
+      mini?.setTrack(TRACKS[toIndex]);
       return wasPlaying;
     },
     onPlayPause({ forcePlay = false } = {}) {
@@ -201,6 +209,7 @@ export function initHero() {
         audio.load();
       }
       saveTrackChoice(TRACKS[toIndex].id);
+      mini?.setTrack(TRACKS[toIndex]);
       if (wasPlaying && audio) {
         // Best-effort resume — the ctx is already unlocked since we
         // got here from a user gesture earlier.
@@ -244,6 +253,7 @@ export function initHero() {
 
     audio.addEventListener('ended', () => {
       cassette.setPlaying(false);
+      mini?.setPlaying(false);
       if (autoAdvance) {
         // Walk through the catalog. If at the end, wrap to start.
         const next = (cassette.getIndex() + 1) % TRACKS.length;
@@ -277,12 +287,14 @@ export function initHero() {
         if (ctx?.state === 'suspended') await ctx.resume();
         await a.play();
         cassette.setPlaying(true);
+        mini?.setPlaying(true);
       } catch (err) {
         console.warn('Audio play() rejected; user gesture may be required.', err);
       }
     } else {
       a.pause();
       cassette.setPlaying(false);
+      mini?.setPlaying(false);
     }
   }
 
@@ -380,6 +392,7 @@ export function initHero() {
   return () => {
     cancelAnimationFrame(pumpRaf);
     cassette.destroy();
+    mini?.destroy();
     currentViz.destroy();
     switcher?.removeEventListener('click', onSwitcherClick);
     autoToggle?.removeEventListener('click', onAutoToggle);

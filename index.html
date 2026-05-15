@@ -98,6 +98,25 @@
       <pre class="boot-term"></pre>
     </div>
 
+    <!-- Persistent mini-player. Slides in when the user has scrolled
+         past the hero AND the cassette is playing. Hidden otherwise. -->
+    <div class="mini-player" role="region" aria-label="Now playing (persistent)" aria-hidden="true">
+      <button class="mini-play" type="button" aria-label="Play preview">
+        <svg width="9" height="11" viewBox="0 0 10 12" aria-hidden="true">
+          <polygon points="0,0 0,12 10,6" fill="currentColor" />
+        </svg>
+      </button>
+      <span class="mini-meta">
+        <span class="mini-title">—</span>
+        <span class="mini-sub">—</span>
+      </span>
+      <button class="mini-jump" type="button" aria-label="Scroll back to player">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <polygon points="5,1 9,7 1,7" fill="currentColor" />
+        </svg>
+      </button>
+    </div>
+
     <div class="page">
       <!-- ─── sticky nav ─── -->
       <header class="nav">
@@ -398,7 +417,7 @@
             </div>
             <div class="latest-embed reveal">
               <iframe
-                src="https://bandcamp.com/EmbeddedPlayer/album=3212030019/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                data-src="https://bandcamp.com/EmbeddedPlayer/album=3212030019/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
                 title="Divora — Ominous Augury (Bandcamp player)"
                 seamless
                 loading="lazy"
@@ -420,7 +439,7 @@
               <h3>Origins Of The Gyre</h3>
               <span class="yr">MMXXV · 2025</span>
               <iframe
-                src="https://bandcamp.com/EmbeddedPlayer/album=1491704455/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                data-src="https://bandcamp.com/EmbeddedPlayer/album=1491704455/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
                 title="Divora — Origins Of The Gyre (Bandcamp player)"
                 seamless
                 loading="lazy"
@@ -432,7 +451,7 @@
               <h3>Physiognomy</h3>
               <span class="yr">MMXXI · 2021</span>
               <iframe
-                src="https://bandcamp.com/EmbeddedPlayer/album=95361347/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
+                data-src="https://bandcamp.com/EmbeddedPlayer/album=95361347/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
                 title="Divora — Physiognomy (Bandcamp player)"
                 seamless
                 loading="lazy"
