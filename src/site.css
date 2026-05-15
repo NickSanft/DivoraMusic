@@ -465,6 +465,7 @@ button {
   .hero-controls {
     position: static;
     transform: none;
+    translate: 0 0;
     left: auto;
     bottom: auto;
     grid-row: 2;
@@ -549,12 +550,17 @@ button {
 
 /* hero-controls — the whole bottom strip (tape player + switchers).
    Positioned absolutely at the bottom of the hero so it sits below
-   the visualizer ring rather than blocking the prism core. */
+   the visualizer ring rather than blocking the prism core.
+
+   Centering uses the individual `translate` property (not `transform:
+   translateX`) so the first-boot entrance animation's `transform:
+   translateY(...)` composes with the centering instead of replacing
+   it. Otherwise the controls slide in from the right on first load. */
 .hero-controls {
   position: absolute;
   left: 50%;
   bottom: 72px;
-  transform: translateX(-50%);
+  translate: -50% 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -1011,6 +1017,19 @@ button {
     transform 0.15s;
   transform: translateY(4px);
   z-index: 4;
+}
+/* Invisible bridge: an ::after pseudo-element that fills the 10px
+   gap between the slider wrap and the mute button. Without it,
+   the cursor crosses dead space and `.cassette-volume:hover` flips
+   false before reaching the slider. The bridge is part of the wrap,
+   so hovering it keeps the chain alive. */
+.volume-slider-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 12px;
 }
 .cassette-volume:hover .volume-slider-wrap,
 .cassette-volume:focus-within .volume-slider-wrap {

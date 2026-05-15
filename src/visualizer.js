@@ -242,8 +242,18 @@ export function mountPrismStage(container, getSpectrum, { bars = 64, dim = false
   coreSvg.style.position = 'absolute';
   coreSvg.style.left = '50%';
   coreSvg.style.top = '50%';
-  coreSvg.style.transition = 'transform 60ms linear';
+  // Set the centering transform up front so it's already applied at
+  // first paint. Otherwise the next transform write (which adds the
+  // kick scale) would *transition* from the initial computed value
+  // and the core appears to slide in from the lower-right corner.
+  coreSvg.style.transform = 'translate(-50%, -50%) scale(1)';
   container.appendChild(coreSvg);
+  // Now that the centering transform is baked in, opt into the
+  // smooth kick-scale transition. Done in the next frame so the
+  // browser commits the initial state before observing changes.
+  requestAnimationFrame(() => {
+    coreSvg.style.transition = 'transform 60ms linear';
+  });
 
   const ctx = canvas.getContext('2d');
   let width = 0;
