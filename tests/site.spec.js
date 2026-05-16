@@ -307,6 +307,31 @@ test.describe('cassette + tracks', () => {
     await expect(tape).toHaveAttribute('data-side', 'A');
   });
 
+  test('hero-meta "now playing" caption updates on track change', async ({ page }) => {
+    await page.goto(HOME);
+    const caption = page.locator('.hero-meta-now');
+    await expect(caption).toContainText(/Gyrefolk Docks/);
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    await expect(caption).toContainText(/Origins Of The Gyre/);
+    // flip to a real B-side (Ominous A→B)
+    await page.click('.track-switcher button[data-track="gyrefolk-docks"]');
+    await expect(caption).toContainText(/Gyrefolk Docks/);
+    await page.click('.cassette-flip');
+    await expect(caption).toContainText(/Corruption Can Be Fun/);
+  });
+
+  test('flipping a single to blank does NOT change the caption', async ({ page }) => {
+    await page.goto(HOME);
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    const caption = page.locator('.hero-meta-now');
+    await expect(caption).toContainText(/Origins Of The Gyre/);
+    // Flipping Origins reveals the blank side — audio stays loaded,
+    // so the caption should NOT change to "now playing · — blank —".
+    await page.click('.cassette-flip');
+    await expect(page.locator('.cassette')).toHaveAttribute('data-side', 'blank');
+    await expect(caption).toContainText(/Origins Of The Gyre/);
+  });
+
   test('volume slider updates localStorage', async ({ page }) => {
     await page.goto(HOME);
     const slider = page.locator('.volume-slider');

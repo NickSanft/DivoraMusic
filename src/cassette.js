@@ -55,6 +55,11 @@ export function initCassette({
   const lblTitle = tape?.querySelector('.cassette-label .ttl-text');
   const lblSub = tape?.querySelector('.cassette-label .sub');
   const sideEl = tape?.querySelector('.cassette-side');
+  // The "now playing · ..." marker in the hero-meta strip at the
+  // bottom-left of the hero. Kept in sync with whatever audio is
+  // currently loaded — not whatever side is visible, so flipping a
+  // single (Origins) to its blank B-side doesn't change this text.
+  const nowEl = document.querySelector('.hero-meta-now');
   // Controls live outside the cassette now (in .deck-controls under
   // .tape-player) so they don't animate with the eject/insert.
   const controls = document.querySelector('.deck-controls');
@@ -101,6 +106,12 @@ export function initCassette({
     }
     timeEl.textContent = `00:00 / ${fmtTime(track.duration)}`;
     if (barEl) barEl.style.width = '0%';
+    // Update the hero-meta "now playing" caption — but only for real
+    // tracks. Flipping to a blank side leaves the audio untouched,
+    // so the caption should stay on the recorded side.
+    if (nowEl && !track.blank) {
+      nowEl.textContent = `now playing · ${track.title}`;
+    }
     // Hide / disable the flip button if this side has no mate.
     if (flipBtn) {
       const realTrack = !track.blank ? track : findRealTrackFromBlank();
