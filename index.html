@@ -91,6 +91,11 @@
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
+    <!-- Keyboard-only skip link. Hidden visually until focused, then
+         lands top-left so a Tab from the nav can jump past the
+         header and into the main content. -->
+    <a class="skip-link" href="#latest">Skip to main content</a>
+
     <!-- First-visit boot overlay — JS adds .active to show it,
          then fills .boot-term with terminal lines, then adds
          .fading to dismiss. See src/boot.js. -->
@@ -166,7 +171,9 @@
         <div class="hero-overlay">
           <div class="hero-eyebrow">est. mmxiii · nashville</div>
           <h1 class="hero-title">DIVORA</h1>
-          <p class="hero-tag">synth · drum &amp; bass · whatever I feel like</p>
+          <p class="hero-tag">
+            soundtracks for tables &amp; tape-decks · campaigns &amp; constellations
+          </p>
         </div>
 
         <div class="hero-controls">
@@ -209,7 +216,17 @@
                 aria-valuemax="100"
                 aria-valuenow="0"
               >
+                <svg
+                  class="cassette-bar-wave"
+                  viewBox="0 0 240 24"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path class="cassette-bar-wave-dim" d="" />
+                  <path class="cassette-bar-wave-fill" d="" />
+                </svg>
                 <span class="cassette-bar-fill"></span>
+                <span class="cassette-bar-tooltip" aria-hidden="true">00:00</span>
               </button>
               <span class="cassette-time">00:00 / 02:34</span>
               <button class="cassette-next" type="button" aria-label="Next track">
@@ -298,7 +315,9 @@
         </div>
 
         <div class="hero-meta">
-          <span class="hero-meta-now">now playing · gyrefolk docks</span>
+          <span class="hero-meta-now" aria-live="polite" aria-atomic="true"
+            >now playing · gyrefolk docks</span
+          >
           <span>↓ scroll</span>
         </div>
       </section>
@@ -343,19 +362,22 @@
 
             <div class="about-body">
               <p class="quote reveal">
-                A musician in Nashville making synth, drum &amp; bass, and whatever music feels
-                true.
+                Music made for the table, the tape deck, and the long drive between them.
               </p>
               <div class="reveal">
                 <p>
-                  Writing under the name Divora since 2013 — three records, fourteen tracks, no
-                  genre.
+                  Divora is a Nashville musician scoring tabletop campaigns and the spaces in
+                  between — ambient ruins, battle cues, chill rooms, the music a party hears in a
+                  tavern that may or may not be real.
                 </p>
-                <p>Some songs arrive as cathedrals. Some arrive as static. Both get released.</p>
+                <p>
+                  Recording under this name since 2013. Most of the catalog lives on Bandcamp. Some
+                  songs arrive as cathedrals. Some arrive as static. Both get released.
+                </p>
               </div>
               <div class="about-stats reveal">
-                <div class="about-stat"><b>03</b>Albums</div>
-                <div class="about-stat"><b>14</b>Tracks</div>
+                <div class="about-stat"><b>13</b>Releases</div>
+                <div class="about-stat"><b>70+</b>Tracks</div>
                 <div class="about-stat"><b>2013</b>Est.</div>
               </div>
             </div>
@@ -415,7 +437,8 @@
                 </div>
               </div>
             </div>
-            <div class="latest-embed reveal">
+            <div class="latest-embed reveal" data-album-id="3212030019">
+              <canvas class="disco-sigil" aria-hidden="true"></canvas>
               <iframe
                 data-src="https://bandcamp.com/EmbeddedPlayer/album=3212030019/size=large/bgcol=181a1b/linkcol=c4a8ff/tracklist=false/artwork=small/transparent=true/"
                 title="Divora — Ominous Augury (Bandcamp player)"

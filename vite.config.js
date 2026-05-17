@@ -7,7 +7,11 @@ export default defineConfig({
   build: {
     target: 'es2020',
     cssTarget: 'chrome100',
-    sourcemap: true,
+    // `hidden` keeps the .map files on disk (uploadable to error
+    // tracking) but strips the `//# sourceMappingURL` comments so
+    // visitors don't auto-load them in DevTools. ~100 KB off the
+    // public bundle perception.
+    sourcemap: 'hidden',
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),

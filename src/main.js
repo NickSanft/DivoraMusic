@@ -24,6 +24,7 @@ import { initCat } from './cat.js';
 import { initDiscoSigils } from './disco-sigils.js';
 import { initLazyIframes } from './lazy-iframes.js';
 import { initBoot } from './boot.js';
+import { initIdle } from './idle.js';
 
 function ready(fn) {
   if (document.readyState === 'loading') {
@@ -42,6 +43,7 @@ ready(() => {
   initCat();
   initDiscoSigils();
   initLazyIframes();
+  initIdle();
   // Boot last so all the other modules' state is in place before
   // the entrance choreography references them.
   initBoot();

@@ -85,19 +85,24 @@ function drawSigil(canvas, seed) {
 }
 
 export function initDiscoSigils() {
-  const items = document.querySelectorAll('.disco-item[data-album-id]');
-  if (!items.length) return () => {};
+  // The same procedural sigil treatment runs on the latest-embed
+  // (Section II featured release) AND each disco-item (Section III).
+  // Any element with `data-album-id` + a child `.disco-sigil` canvas
+  // qualifies. We iterate the containers (which carry the seed) and
+  // find their child canvases.
+  const containers = document.querySelectorAll('[data-album-id]');
+  if (!containers.length) return () => {};
 
   const cleanups = [];
-  items.forEach((item) => {
-    const canvas = item.querySelector('.disco-sigil');
+  containers.forEach((container) => {
+    const canvas = container.querySelector(':scope > .disco-sigil');
     if (!canvas) return;
-    const seed = parseInt(item.dataset.albumId, 10);
+    const seed = parseInt(container.dataset.albumId, 10);
     if (!Number.isFinite(seed)) return;
     const repaint = () => drawSigil(canvas, seed);
     repaint();
     const ro = new ResizeObserver(repaint);
-    ro.observe(item);
+    ro.observe(container);
     cleanups.push(() => ro.disconnect());
   });
 

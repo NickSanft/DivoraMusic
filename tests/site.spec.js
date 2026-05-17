@@ -370,6 +370,71 @@ test.describe('cassette + tracks', () => {
   });
 });
 
+test.describe('progress-bar waveform + tooltip', () => {
+  test('each track paints a non-trivial waveform path', async ({ page }) => {
+    await page.goto(HOME);
+    const wave = page.locator('.cassette-bar-wave-dim');
+    const d1 = await wave.getAttribute('d');
+    expect(d1?.length || 0).toBeGreaterThan(200);
+    // Switch tracks — waveform path should change to the next track's peaks.
+    await page.click('.track-switcher button[data-track="origins-of-the-gyre"]');
+    const d2 = await wave.getAttribute('d');
+    expect(d2).not.toBe(d1);
+    expect(d2?.length || 0).toBeGreaterThan(200);
+  });
+
+  test('hover-tooltip displays a target seek time', async ({ page }) => {
+    await page.goto(HOME);
+    const bar = page.locator('.cassette-bar');
+    const tooltip = page.locator('.cassette-bar-tooltip');
+    const box = await bar.boundingBox();
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2);
+    // After a pointermove at the midpoint, tooltip text should be
+    // roughly half the track's duration. We just assert it's a time
+    // formatted as mm:ss and not the default 00:00.
+    const txt = await tooltip.textContent();
+    expect(txt).toMatch(/^\d{2}:\d{2}$/);
+    expect(txt).not.toBe('00:00');
+  });
+});
+
+test.describe('press-play attention pulse', () => {
+  test('?test=1 never adds the pulse class', async ({ page }) => {
+    await page.goto(HOME);
+    await expect(page.locator('.cassette-play')).not.toHaveClass(/attention/);
+  });
+});
+
+test.describe('accessibility second pass', () => {
+  test('skip link exists and is first focusable', async ({ page }) => {
+    await page.goto(HOME);
+    const skip = page.locator('.skip-link');
+    await expect(skip).toHaveAttribute('href', /#latest|#about|#hero/);
+    // Tab from a clean state should land on the skip link first.
+    await page.keyboard.press('Tab');
+    const focused = await page.evaluate(() =>
+      document.activeElement?.classList?.contains('skip-link'),
+    );
+    expect(focused).toBe(true);
+  });
+
+  test('hero-meta-now is announced via aria-live', async ({ page }) => {
+    await page.goto(HOME);
+    const caption = page.locator('.hero-meta-now');
+    await expect(caption).toHaveAttribute('aria-live', 'polite');
+    await expect(caption).toHaveAttribute('aria-atomic', 'true');
+  });
+
+  test('volume slider exposes aria-valuetext as a percentage', async ({ page }) => {
+    await page.goto(HOME);
+    await page.locator('.volume-slider').evaluate((el) => {
+      el.value = '50';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(page.locator('.volume-slider')).toHaveAttribute('aria-valuetext', '50 percent');
+  });
+});
+
 test.describe('lazy-loaded Bandcamp iframes', () => {
   test('iframes start without a src and load when scrolled near', async ({ page }) => {
     await page.goto(HOME);

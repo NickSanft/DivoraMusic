@@ -88,4 +88,12 @@ export async function initBoot() {
   // Strip the class after the longest stage finishes (1.4s).
   await sleep(1400);
   hero.classList.remove('first-boot');
+
+  // First-visit "press play" hint — once the entrance is settled,
+  // pulse the play button until the user actually presses it. The
+  // cassette's setPlaying(true) clears the .attention class.
+  // Skipped under prefers-reduced-motion (the keyframe is suppressed
+  // there anyway, but no point adding the class either).
+  const playBtn = document.querySelector('.cassette-play');
+  if (playBtn && !PREFERS_REDUCED) playBtn.classList.add('attention');
 }

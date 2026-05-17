@@ -45,6 +45,55 @@ button {
   border-radius: 2px;
 }
 
+/* Skip-to-content link — visually-hidden until focused. WCAG 2.4.1
+   wants a first-focusable mechanism to skip the nav. Lands top-left
+   in the violet accent when a keyboard user presses Tab. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 250;
+  padding: 10px 16px;
+  background: var(--violet);
+  color: var(--mist);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  /* clip + transform so it's painted but offscreen until focused */
+  clip-path: inset(50%);
+  transform: translateY(-200%);
+  transition:
+    transform 0.18s ease,
+    clip-path 0s linear 0.18s;
+}
+.skip-link:focus-visible,
+.skip-link:focus {
+  clip-path: inset(0);
+  transform: translateY(0);
+  transition:
+    transform 0.18s ease,
+    clip-path 0s;
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+
+/* Screen-reader-only utility. Used to announce cassette-side changes
+   that aren't otherwise spoken (the visual state changes via CSS
+   classes; screen readers need text). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ─── first-boot terminal overlay ─── */
 .boot-overlay {
   position: fixed;
@@ -101,6 +150,32 @@ button {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* ─── idle aliveness ─── */
+/* After 30s of no input, body.idle tells everyone "you can breathe a
+   little louder now." Smooth 1.2s transitions so the shift is felt
+   subliminally rather than seen. Reset on any input. */
+.hero-title,
+.hero-stage > div,
+.cassette-label,
+.reel,
+.disco-sigil {
+  transition:
+    text-shadow 1.2s ease,
+    filter 1.2s ease,
+    opacity 1.2s ease;
+}
+body.idle .hero-title {
+  text-shadow:
+    0 0 80px rgba(255, 77, 143, 0.45),
+    0 0 30px rgba(124, 58, 237, 0.5);
+}
+body.idle .hero-stage > div {
+  filter: brightness(1.1) saturate(1.08);
+}
+body.idle .disco-sigil {
+  opacity: 0.32;
 }
 
 /* ─── hero first-boot entrance ─── */
@@ -869,27 +944,66 @@ button {
 .cassette-play:active {
   transform: scale(0.95);
 }
-/* progress bar — now a real button you can click to seek */
+/* First-visit pulse — calls attention to the play button if the
+   user hasn't pressed play yet this session. boot.js adds the class
+   after the boot terminal finishes, hero.js removes it on first
+   click. Suppressed under prefers-reduced-motion. */
+.cassette-play.attention {
+  animation: cassette-play-pulse 2.4s ease-in-out 0s infinite;
+  box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.6);
+}
+@keyframes cassette-play-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.6);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 18px 4px rgba(124, 58, 237, 0.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cassette-play.attention {
+    animation: none;
+  }
+}
+/* progress bar — now a real button you can click to seek. Internally:
+   .cassette-bar-wave   SVG with two paths: dim track + ember fill
+   .cassette-bar-fill   thin coloured line drawn over the waveform up
+                        to the current playhead (kept for accents)
+   .cassette-bar-tooltip floating "01:23" pill that follows the cursor */
 .cassette-bar {
   position: relative;
-  height: 12px;
+  height: 22px;
   padding: 0;
   background: none;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  /* hit area is 12px tall but the visible track is 2px */
+  /* hit area is the full button; the visible waveform fills 100% × 100% */
 }
-.cassette-bar::before {
-  content: '';
+.cassette-bar-wave {
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 2px;
-  margin-top: -1px;
-  background: var(--line);
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.cassette-bar-wave-dim {
+  fill: var(--line);
+  fill-opacity: 1;
+}
+.cassette-bar-wave-fill {
+  fill: var(--accent, var(--ember));
+  fill-opacity: 0.92;
+  /* clip-path inset reveals the fill up to the playhead position;
+     JS sets `--bar-pos` between 0 and 1 as audio progresses. */
+  clip-path: inset(0 calc(100% - var(--bar-pos, 0%) * 100) 0 0);
 }
 .cassette-bar-fill {
   position: relative;
@@ -899,6 +1013,38 @@ button {
   background: linear-gradient(90deg, var(--violet), var(--accent));
   transition: width 0.15s linear;
   pointer-events: none;
+}
+/* Hover tooltip — shows the target seek time. JS sets its text +
+   `left` inline as the cursor moves along the bar. */
+.cassette-bar-tooltip {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 6px;
+  padding: 3px 7px;
+  background: rgba(10, 4, 20, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-family: var(--f-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--mist);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(2px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+.cassette-bar:hover .cassette-bar-tooltip,
+.cassette-bar.dragging .cassette-bar-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* Visual cue when the user is actively dragging — accent stripe
+   thickens. The waveform itself doesn't change height. */
+.cassette-bar.dragging .cassette-bar-fill {
+  height: 2px;
 }
 .cassette-bar:hover .cassette-bar-fill,
 .cassette-bar:focus-visible .cassette-bar-fill {
@@ -1208,7 +1354,8 @@ button {
   background: rgba(124, 58, 237, 0.12);
 }
 .track-switcher .ts-num {
-  color: var(--ember);
+  /* Set per-button by cassette.js — falls back to ember if absent. */
+  color: var(--accent, var(--ember));
   margin-right: 6px;
 }
 
@@ -1558,6 +1705,14 @@ section.s {
   border: 1px solid var(--line);
   padding: 12px;
   min-height: 320px;
+  overflow: hidden;
+}
+/* Latest section reuses the disco-sigil canvas so the latest album
+   feels alive in the same language as the discography. Positioned
+   behind the iframe via z-index. */
+.latest-embed > *:not(.disco-sigil) {
+  position: relative;
+  z-index: 1;
 }
 .latest-embed::before,
 .latest-embed::after {

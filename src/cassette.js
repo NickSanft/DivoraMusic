@@ -6,6 +6,7 @@
 // this module is purely presentational and is told what to show.
 
 import { TRACKS, BLANK_SIDE, SOUNDS, findAlbumMate } from './tracks.js';
+import waveforms from './waveforms.json';
 
 const EJECT_MS = 500;
 const INSERT_MS = 600;
@@ -41,6 +42,27 @@ function fmtTime(sec) {
   return `${String((s / 60) | 0).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
+// Build a closed SVG path from a peaks array (0..1 floats). Maps each
+// peak to a vertical bar centered on y=12 of a 240×24 viewBox — bar
+// width is 1px with no gap, so 240 peaks yield a clean fill.
+function peaksToPath(peaks) {
+  if (!peaks?.length) return '';
+  const w = 240;
+  const h = 24;
+  const midY = h / 2;
+  const step = w / peaks.length;
+  let top = `M0 ${midY} `;
+  let bottom = '';
+  for (let i = 0; i < peaks.length; i += 1) {
+    const x = (i + 0.5) * step;
+    const peak = Math.max(0.04, peaks[i]); // floor so quiet sections still have visible body
+    const y = peak * (h / 2);
+    top += `L${x.toFixed(2)} ${(midY - y).toFixed(2)} `;
+    bottom = `L${x.toFixed(2)} ${(midY + y).toFixed(2)} ${bottom}`;
+  }
+  return `${top}L${w} ${midY} ${bottom}L0 ${midY} Z`;
+}
+
 export function initCassette({
   initialIndex = 0,
   onSwap,
@@ -60,6 +82,10 @@ export function initCassette({
   // currently loaded — not whatever side is visible, so flipping a
   // single (Origins) to its blank B-side doesn't change this text.
   const nowEl = document.querySelector('.hero-meta-now');
+  const barTooltip = document.querySelector('.cassette-bar-tooltip');
+  const waveDim = document.querySelector('.cassette-bar-wave-dim');
+  const waveFill = document.querySelector('.cassette-bar-wave-fill');
+  const barWaveRoot = document.querySelector('.cassette-bar');
   // Controls live outside the cassette now (in .deck-controls under
   // .tape-player) so they don't animate with the eject/insert.
   const controls = document.querySelector('.deck-controls');
@@ -98,6 +124,14 @@ export function initCassette({
     tape.style.setProperty('--accent', track.accent);
     tape.setAttribute('data-track', track.id);
     tape.setAttribute('data-side', track.blank ? 'blank' : track.side);
+    // Repaint the waveform for the new track. Blank-side flips reuse
+    // whatever track was loaded (audio stays); we leave the previous
+    // peaks in place because they still describe the actual audio.
+    if (!track.blank && waveDim && waveFill) {
+      const path = peaksToPath(waveforms[track.id]);
+      waveDim.setAttribute('d', path);
+      waveFill.setAttribute('d', path);
+    }
     if (sideEl) sideEl.textContent = track.blank ? '— SIDE B —' : `SIDE ${track.side}`;
     if (track.blank) {
       lblSub.textContent = 'NO RECORDING';
@@ -147,6 +181,11 @@ export function initCassette({
       b.type = 'button';
       b.dataset.index = String(i);
       b.dataset.track = t.id;
+      // Per-album accent: CSS reads --accent on the button so the
+      // ts-num matches the album's color (magenta for Ominous,
+      // amber for Origins). Keeps the album language consistent
+      // across cassette + sigil + track switcher.
+      b.style.setProperty('--accent', t.accent);
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(i === currentIndex));
       b.innerHTML = `<span class="ts-num">${t.number}</span>${t.title}`;
@@ -216,16 +255,47 @@ export function initCassette({
   playBtn.addEventListener('click', () => onPlayPause?.());
   nextBtn.addEventListener('click', () => onNext?.());
 
-  // Click-to-seek on the progress bar. We translate the click's
-  // x-position within the bar to a 0..1 ratio and hand it to the
-  // host, which knows the audio element.
-  const onBarClick = (e) => {
-    if (!barBtn) return;
+  // Pointer-based seek: click anywhere on the bar, OR press-and-drag
+  // to scrub. Uses pointer events so touch + mouse + pen all work
+  // through the same path. The tooltip follows the cursor along the
+  // bar and shows the target time live.
+  let dragging = false;
+  let currentDuration = TRACKS[initialIndex].duration;
+
+  const ratioForEvent = (e) => {
     const rect = barBtn.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  };
+  const updateTooltip = (ratio) => {
+    if (!barTooltip) return;
+    barTooltip.textContent = fmtTime(ratio * currentDuration);
+    barTooltip.style.left = `${ratio * 100}%`;
+  };
+  const onBarPointerMove = (e) => {
+    if (!barBtn) return;
+    const ratio = ratioForEvent(e);
+    updateTooltip(ratio);
+    if (dragging) onSeek?.(ratio);
+  };
+  const onBarPointerDown = (e) => {
+    if (!barBtn) return;
+    dragging = true;
+    barBtn.classList.add('dragging');
+    barBtn.setPointerCapture?.(e.pointerId);
+    const ratio = ratioForEvent(e);
+    updateTooltip(ratio);
     onSeek?.(ratio);
   };
-  barBtn?.addEventListener('click', onBarClick);
+  const onBarPointerUp = (e) => {
+    if (!barBtn || !dragging) return;
+    dragging = false;
+    barBtn.classList.remove('dragging');
+    barBtn.releasePointerCapture?.(e.pointerId);
+  };
+  barBtn?.addEventListener('pointermove', onBarPointerMove);
+  barBtn?.addEventListener('pointerdown', onBarPointerDown);
+  barBtn?.addEventListener('pointerup', onBarPointerUp);
+  barBtn?.addEventListener('pointercancel', onBarPointerUp);
 
   // Mute toggle. Volume slider sends continuous updates to the host;
   // the host stores it and applies it to the live audio element.
@@ -238,8 +308,12 @@ export function initCassette({
   muteBtn?.addEventListener('click', onMuteClick);
 
   const onVolumeInput = (e) => {
-    const v = Number(e.target.value) / 100;
+    const pct = Math.round(Number(e.target.value));
+    const v = pct / 100;
     onVolume?.(v);
+    // aria-valuetext gives screen readers a friendlier readout than
+    // the bare number — "60 percent" instead of "60".
+    e.target.setAttribute('aria-valuetext', `${pct} percent`);
     // Tapping the slider while muted implicitly unmutes if the user
     // chose any non-zero level.
     if (v > 0 && muteBtn?.getAttribute('aria-pressed') === 'true') {
@@ -404,16 +478,27 @@ export function initCassette({
       playBtn.innerHTML = playing ? pauseIcon : playIcon;
       playBtn.setAttribute('aria-pressed', String(playing));
       tape.classList.toggle('playing', playing);
+      // First press clears the attention pulse — the user has
+      // discovered the play button; the hint has done its job.
+      if (playing) playBtn.classList.remove('attention');
     },
     setProgress(currentSec, durationSec) {
       const d = durationSec || TRACKS[currentIndex].duration;
+      currentDuration = d;
       const pct = Math.min(100, (currentSec / d) * 100);
       if (barEl) barEl.style.width = `${pct}%`;
+      // CSS variable drives the waveform's clip-path inset, revealing
+      // the ember-colored fill up to the playhead.
+      if (barWaveRoot) barWaveRoot.style.setProperty('--bar-pos', `${pct / 100}`);
       if (barBtn) barBtn.setAttribute('aria-valuenow', String(Math.round(pct)));
       timeEl.textContent = `${fmtTime(currentSec)} / ${fmtTime(d)}`;
     },
     setVolumeUI(level, muted) {
-      if (volumeInput) volumeInput.value = String(Math.round(level * 100));
+      if (volumeInput) {
+        const pct = Math.round(level * 100);
+        volumeInput.value = String(pct);
+        volumeInput.setAttribute('aria-valuetext', `${pct} percent`);
+      }
       if (muteBtn) {
         muteBtn.setAttribute('aria-pressed', String(!!muted));
         muteBtn.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
@@ -428,7 +513,10 @@ export function initCassette({
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', onVisibility);
       trackSwitcher?.removeEventListener('click', onSwitcherClick);
-      barBtn?.removeEventListener('click', onBarClick);
+      barBtn?.removeEventListener('pointermove', onBarPointerMove);
+      barBtn?.removeEventListener('pointerdown', onBarPointerDown);
+      barBtn?.removeEventListener('pointerup', onBarPointerUp);
+      barBtn?.removeEventListener('pointercancel', onBarPointerUp);
       muteBtn?.removeEventListener('click', onMuteClick);
       volumeInput?.removeEventListener('input', onVolumeInput);
       flipBtn?.removeEventListener('click', onFlipClick);
