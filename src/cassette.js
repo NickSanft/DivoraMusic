@@ -109,6 +109,20 @@ export function initCassette({
   sfx.eject.preload = 'auto';
   sfx.insert.preload = 'auto';
 
+  // Track the user's music volume + mute so SFX scale with them.
+  // The host calls setVolumeUI(level, muted) on init and on every
+  // change; we cache the level here so SFX playback can multiply
+  // against it (and skip entirely when muted).
+  let musicVolume = 1;
+  let musicMuted = false;
+  const SFX_VOLUME_FACTOR = 0.7; // SFX are slightly quieter than music
+  const playSfx = (clip) => {
+    if (musicMuted) return;
+    clip.volume = Math.max(0, Math.min(1, musicVolume * SFX_VOLUME_FACTOR));
+    clip.currentTime = 0;
+    clip.play().catch(() => {});
+  };
+
   let currentIndex = initialIndex;
   let swapInFlight = false;
   let typeAbort = null;
@@ -259,7 +273,15 @@ export function initCassette({
   // to scrub. Uses pointer events so touch + mouse + pen all work
   // through the same path. The tooltip follows the cursor along the
   // bar and shows the target time live.
+  //
+  // Dragging produces a torrent of pointermove events — without
+  // throttling, writing audio.currentTime that often makes the
+  // decoder stutter. We coalesce into one seek per animation frame
+  // via requestAnimationFrame, and flush the final position on
+  // pointerup so the audio lands exactly where the user released.
   let dragging = false;
+  let pendingRatio = null;
+  let seekRaf = 0;
   let currentDuration = TRACKS[initialIndex].duration;
 
   const ratioForEvent = (e) => {
@@ -271,11 +293,22 @@ export function initCassette({
     barTooltip.textContent = fmtTime(ratio * currentDuration);
     barTooltip.style.left = `${ratio * 100}%`;
   };
+  const flushSeek = () => {
+    if (pendingRatio !== null) {
+      onSeek?.(pendingRatio);
+      pendingRatio = null;
+    }
+    seekRaf = 0;
+  };
+  const queueSeek = (ratio) => {
+    pendingRatio = ratio;
+    if (!seekRaf) seekRaf = requestAnimationFrame(flushSeek);
+  };
   const onBarPointerMove = (e) => {
     if (!barBtn) return;
     const ratio = ratioForEvent(e);
     updateTooltip(ratio);
-    if (dragging) onSeek?.(ratio);
+    if (dragging) queueSeek(ratio);
   };
   const onBarPointerDown = (e) => {
     if (!barBtn) return;
@@ -284,6 +317,7 @@ export function initCassette({
     barBtn.setPointerCapture?.(e.pointerId);
     const ratio = ratioForEvent(e);
     updateTooltip(ratio);
+    // First touch seeks immediately for "click to seek" feel.
     onSeek?.(ratio);
   };
   const onBarPointerUp = (e) => {
@@ -291,6 +325,13 @@ export function initCassette({
     dragging = false;
     barBtn.classList.remove('dragging');
     barBtn.releasePointerCapture?.(e.pointerId);
+    // Flush any queued seek so the audio lands exactly where the
+    // user released, not at whatever frame the last rAF saw.
+    if (seekRaf) {
+      cancelAnimationFrame(seekRaf);
+      seekRaf = 0;
+    }
+    flushSeek();
   };
   barBtn?.addEventListener('pointermove', onBarPointerMove);
   barBtn?.addEventListener('pointerdown', onBarPointerDown);
@@ -355,8 +396,7 @@ export function initCassette({
     // wants us to auto-resume after insert.
     const wantResume = (await onSwap?.({ fromIndex, toIndex: nextIndex })) === true;
 
-    sfx.eject.currentTime = 0;
-    sfx.eject.play().catch(() => {});
+    playSfx(sfx.eject);
 
     if (!SKIP_ANIM) {
       tape.classList.remove('inserting');
@@ -369,8 +409,7 @@ export function initCassette({
     applyTrackToTape(toTrack);
     reflectSwitcher();
 
-    sfx.insert.currentTime = 0;
-    sfx.insert.play().catch(() => {});
+    playSfx(sfx.insert);
 
     if (!SKIP_ANIM) {
       tape.classList.remove('ejecting');
@@ -494,6 +533,8 @@ export function initCassette({
       timeEl.textContent = `${fmtTime(currentSec)} / ${fmtTime(d)}`;
     },
     setVolumeUI(level, muted) {
+      musicVolume = level;
+      musicMuted = !!muted;
       if (volumeInput) {
         const pct = Math.round(level * 100);
         volumeInput.value = String(pct);
@@ -511,6 +552,7 @@ export function initCassette({
     },
     destroy() {
       if (raf) cancelAnimationFrame(raf);
+      if (seekRaf) cancelAnimationFrame(seekRaf);
       document.removeEventListener('visibilitychange', onVisibility);
       trackSwitcher?.removeEventListener('click', onSwitcherClick);
       barBtn?.removeEventListener('pointermove', onBarPointerMove);
