@@ -35,6 +35,12 @@ function ready(fn) {
 }
 
 ready(() => {
+  // Keep the footer copyright year fresh forever without a manual
+  // edit. Falls back to the static value in index.html if JS fails.
+  for (const el of document.querySelectorAll('[data-year-current]')) {
+    el.textContent = String(new Date().getFullYear());
+  }
+
   initNav();
   initReveal();
   initHero();

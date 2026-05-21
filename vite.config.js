@@ -16,6 +16,8 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         lab: resolve(import.meta.dirname, 'lab.html'),
+        // GitHub Pages auto-serves 404.html on any missing path.
+        notfound: resolve(import.meta.dirname, '404.html'),
       },
     },
   },

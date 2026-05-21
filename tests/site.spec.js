@@ -572,6 +572,28 @@ test.describe('scroll-spy URL hash', () => {
   });
 });
 
+test.describe('404 page', () => {
+  test('ships as 404.html and renders the branded "signal lost" copy', async ({ request }) => {
+    const r = await request.get('/404.html');
+    expect(r.ok()).toBe(true);
+    const body = await r.text();
+    expect(body).toMatch(/SIGNAL[\s\S]*LOST/);
+    expect(body).toMatch(/return to surface/i);
+    expect(body).toMatch(/noindex/);
+  });
+});
+
+test.describe('footer copyright auto-year', () => {
+  test('the year-current span is populated to the current year on load', async ({ page }) => {
+    await page.goto(HOME);
+    const text = await page.locator('[data-year-current]').textContent();
+    const year = Number(text);
+    const now = new Date().getFullYear();
+    expect(year).toBeGreaterThanOrEqual(now - 1);
+    expect(year).toBeLessThanOrEqual(now + 1);
+  });
+});
+
 test.describe('SEO meta', () => {
   test('home has canonical, og, and MusicGroup JSON-LD', async ({ page }) => {
     await page.goto(HOME);
